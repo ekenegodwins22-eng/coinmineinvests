@@ -11,7 +11,7 @@ import { Copy, AlertTriangle } from "lucide-react";
 import { isUnauthorizedError } from "@/lib/authUtils";
 
 interface MiningPlan {
-  id: string;
+  id: number;
   name: string;
   price: string;
   miningRate: string;
@@ -124,7 +124,7 @@ export default function PaymentModal({ plan, isOpen, onClose }: PaymentModalProp
     const cryptoAmount = calculateCryptoAmount(selectedCrypto);
 
     createTransactionMutation.mutate({
-      planId: plan._id || plan.id,
+      planId: plan.id,
       currency: selectedCrypto.symbol,
       cryptoAmount: parseFloat(cryptoAmount),
       walletAddress: selectedCrypto.address,

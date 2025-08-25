@@ -460,6 +460,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
 async function initializeMiningPlans() {
   try {
     const existingPlans = await storage.getMiningPlans();
+    
+    // Update existing plans to 1-month contract period if they have old values
+    if (existingPlans.length > 0) {
+      for (const existingPlan of existingPlans) {
+        if (existingPlan.contractPeriod === 12) {
+          // Update the plan with new values
+          const updatedFeatures = existingPlan.features?.map(feature => 
+            feature.replace('12-month contract', '1-month contract')
+          );
+          
+          await storage.updateMiningPlan(existingPlan.id, {
+            contractPeriod: 1,
+            features: updatedFeatures
+          });
+        }
+      }
+      console.log("✓ Existing mining plans updated to 1-month contracts");
+      return;
+    }
+    
     if (existingPlans.length === 0) {
       const plans = [
         {

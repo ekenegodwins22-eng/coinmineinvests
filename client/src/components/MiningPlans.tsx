@@ -4,16 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import PaymentModal from "./PaymentModal";
 interface MiningPlan {
-  _id?: string;
-  id?: string;
+  id: number;
   name: string;
-  price: number;
-  miningRate: number;
-  dailyEarnings: number;
-  monthlyRoi: number;
+  price: string;
+  miningRate: string;
+  dailyEarnings: string;
+  monthlyRoi: string;
   contractPeriod: number;
   description?: string;
   features?: string[];
+  isActive?: boolean;
 }
 
 export default function MiningPlans() {
@@ -50,7 +50,7 @@ export default function MiningPlans() {
 
           return (
             <div
-              key={plan._id || plan.id}
+              key={plan.id}
               className={`bg-cmc-card rounded-2xl p-8 border ${
                 isPopular
                   ? "border-2 border-cmc-blue relative overflow-hidden"
@@ -100,7 +100,7 @@ export default function MiningPlans() {
                 <div className="flex items-center justify-between">
                   <span className="text-cmc-gray">Contract Period</span>
                   <span className="font-semibold" data-testid={`text-contract-period-${plan.name.toLowerCase()}`}>
-                    {plan.contractPeriod} months
+                    {plan.contractPeriod} {plan.contractPeriod === 1 ? 'month' : 'months'}
                   </span>
                 </div>
               </div>

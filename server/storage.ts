@@ -43,6 +43,7 @@ export interface IStorage {
   getMiningPlans(): Promise<MiningPlan[]>;
   getMiningPlan(id: number): Promise<MiningPlan | null>;
   createMiningPlan(plan: NewMiningPlan): Promise<MiningPlan>;
+  updateMiningPlan(id: number, updates: Partial<MiningPlan>): Promise<MiningPlan | null>;
   
   // Transactions
   createTransaction(transaction: CreateTransactionData & { userId: number; amount: number }): Promise<Transaction>;
@@ -128,6 +129,11 @@ export class PostgresStorage implements IStorage {
   async createMiningPlan(planData: NewMiningPlan): Promise<MiningPlan> {
     const result = await db.insert(miningPlans).values(planData).returning();
     return result[0];
+  }
+
+  async updateMiningPlan(id: number, updates: Partial<MiningPlan>): Promise<MiningPlan | null> {
+    const result = await db.update(miningPlans).set({...updates, updatedAt: sql`NOW()`}).where(eq(miningPlans.id, id)).returning();
+    return result[0] || null;
   }
 
   // Transactions
