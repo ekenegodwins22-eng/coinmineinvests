@@ -3,9 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Coins, Zap, Clock, TrendingUp, ArrowUpCircle, ArrowDownCircle, BarChart3, Activity } from "lucide-react";
+import { Coins, Zap, Clock, TrendingUp, ArrowUpCircle, ArrowDownCircle, BarChart3, Activity, Plus } from "lucide-react";
 import { Link } from "wouter";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect } from "react";
+import RealTimeBalanceTicker from "./RealTimeBalanceTicker";
 
 interface MiningEarning {
   id: number;
@@ -107,6 +109,24 @@ export default function MiningDashboard() {
   const todaysTotalBtc = todaysEarnings.reduce((sum, earning) => sum + Number(earning.amount), 0);
   const yesterdaysTotalBtc = yesterdaysEarnings.reduce((sum, earning) => sum + Number(earning.amount), 0);
 
+  // Real-time balance ticker state
+  const [previousBalance, setPreviousBalance] = useState(totals.totalBtc);
+  const [balanceIncrement, setBalanceIncrement] = useState(0);
+  const [showIncrement, setShowIncrement] = useState(false);
+
+  // Track balance changes for micro-animations
+  useEffect(() => {
+    if (totals.totalBtc > previousBalance && previousBalance > 0) {
+      const increment = totals.totalBtc - previousBalance;
+      setBalanceIncrement(increment);
+      setShowIncrement(true);
+      
+      // Hide increment after animation
+      setTimeout(() => setShowIncrement(false), 2000);
+    }
+    setPreviousBalance(totals.totalBtc);
+  }, [totals.totalBtc, previousBalance]);
+
   const activeContracts = contracts.filter((contract: MiningContract) => contract.isActive);
   const totalMiningRate = activeContracts.reduce((total, contract) => {
     const miningRate = contract.plan ? Number(contract.plan.miningRate) : 0;
@@ -197,18 +217,76 @@ export default function MiningDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="relative z-10">
-            <div className="text-3xl font-bold text-cmc-green mb-2" data-testid="text-total-btc">
-              {formatBtc(totals.totalBtc)}
+            <div className="relative">
+              {/* Real-time balance ticker */}
+              <div className="text-3xl font-bold mb-2" data-testid="text-total-btc">
+                <RealTimeBalanceTicker
+                  currentBalance={totals.totalBtc}
+                  currency=""
+                  isActive={activeContracts.length > 0}
+                  className="text-cmc-green"
+                />
+                <span className="ml-2 text-cmc-green">BTC</span>
+              </div>
+              
+              {/* Real-time increment ticker */}
+              <AnimatePresence>
+                {showIncrement && balanceIncrement > 0 && (
+                  <motion.div
+                    className="absolute -top-6 right-0 text-sm font-semibold text-cmc-green flex items-center gap-1"
+                    initial={{ opacity: 0, y: 10, scale: 0.8 }}
+                    animate={{ opacity: 1, y: -10, scale: 1 }}
+                    exit={{ opacity: 0, y: -20, scale: 0.8 }}
+                    transition={{ duration: 0.5 }}
+                  >
+                    <Plus className="w-3 h-3" />
+                    {formatBtc(balanceIncrement)}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-            <div className="text-sm text-cmc-gray" data-testid="text-total-usd">
-              ≈ {formatUsd(totals.totalUsd)}
-            </div>
+            
+            <motion.div 
+              className="text-sm text-cmc-gray" 
+              data-testid="text-total-usd"
+              key={totals.totalUsd}
+              initial={{ opacity: 0.7 }}
+              animate={{ opacity: [0.7, 1, 0.7] }}
+              transition={{ duration: 1 }}
+            >
+              ≈ <RealTimeBalanceTicker
+                currentBalance={totals.totalUsd}
+                currency="$"
+                isActive={activeContracts.length > 0}
+                className="text-cmc-gray inline-block"
+              />
+            </motion.div>
             <div className="mt-4 space-y-3">
-              <div className="bg-cmc-dark rounded-lg p-3">
+              <div className="bg-cmc-dark rounded-lg p-3 relative overflow-hidden">
                 <div className="text-sm text-cmc-gray mb-1">Today's Earnings</div>
-                <div className="text-lg font-semibold text-cmc-green" data-testid="text-today-earnings">
+                <motion.div 
+                  className="text-lg font-semibold text-cmc-green" 
+                  data-testid="text-today-earnings"
+                  key={todaysTotalBtc}
+                  animate={{ 
+                    scale: [1, 1.05, 1],
+                    color: ["#10b981", "#06d6a0", "#10b981"]
+                  }}
+                  transition={{ duration: 0.6 }}
+                >
                   +{formatBtc(todaysTotalBtc)}
-                </div>
+                </motion.div>
+                {/* Micro pulse animation for active earning */}
+                {activeContracts.length > 0 && (
+                  <motion.div
+                    className="absolute bottom-2 right-2 w-2 h-2 bg-cmc-green rounded-full"
+                    animate={{ 
+                      opacity: [0.5, 1, 0.5],
+                      scale: [0.8, 1.2, 0.8] 
+                    }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  />
+                )}
               </div>
               <div className="bg-cmc-dark rounded-lg p-3">
                 <div className="text-sm text-cmc-gray mb-1">Yesterday's Earnings</div>
