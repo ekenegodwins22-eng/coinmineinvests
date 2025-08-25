@@ -11,6 +11,19 @@ interface MiningEarning {
   date: string;
 }
 
+interface MiningPlan {
+  id: number;
+  name: string;
+  price: string;
+  miningRate: string;
+  dailyEarnings: string;
+  monthlyRoi: string;
+  contractPeriod: number;
+  description: string;
+  features: string[];
+  isActive: boolean;
+}
+
 interface MiningContract {
   id: number;
   planId: number;
@@ -18,6 +31,16 @@ interface MiningContract {
   endDate: string;
   isActive: boolean;
   totalEarnings: number;
+  plan?: MiningPlan;
+}
+
+interface Announcement {
+  id: number;
+  title: string;
+  content: string;
+  type: string;
+  isActive: boolean;
+  createdAt: string;
 }
 
 interface Transaction {
@@ -47,7 +70,11 @@ export default function MiningDashboard() {
   });
 
   const { data: contracts = [], isLoading: contractsLoading } = useQuery<MiningContract[]>({
-    queryKey: ["/api/mining-contracts"],
+    queryKey: ["/api/mining-contracts-with-plans"],
+  });
+
+  const { data: announcements = [], isLoading: announcementsLoading } = useQuery<Announcement[]>({
+    queryKey: ["/api/announcements"],
   });
 
   const { data: transactions = [], isLoading: transactionsLoading } = useQuery<Transaction[]>({
@@ -62,7 +89,10 @@ export default function MiningDashboard() {
   const totals = earningsData?.totals || { totalBtc: 0, totalUsd: 0 };
 
   const activeContracts = contracts.filter((contract: MiningContract) => contract.isActive);
-  const totalMiningRate = activeContracts.length * 5; // Assuming average 5 MH/s per contract
+  const totalMiningRate = activeContracts.reduce((total, contract) => {
+    const miningRate = contract.plan ? Number(contract.plan.miningRate) : 0;
+    return total + miningRate;
+  }, 0);
 
   // Calculate total deposits (approved transactions)
   const totalDeposits = transactions
@@ -82,7 +112,7 @@ export default function MiningDashboard() {
     return `$${Number(amount).toFixed(2)}`;
   };
 
-  if (earningsLoading || contractsLoading || transactionsLoading || withdrawalsLoading) {
+  if (earningsLoading || contractsLoading || transactionsLoading || withdrawalsLoading || announcementsLoading) {
     return (
       <div className="text-center py-8">
         <div className="text-cmc-gray" data-testid="text-loading-dashboard">Loading dashboard...</div>
@@ -92,6 +122,41 @@ export default function MiningDashboard() {
 
   return (
     <div className="space-y-8" data-testid="container-mining-dashboard">
+      {/* Announcements Section */}
+      {announcements.length > 0 && (
+        <Card className="bg-cmc-card border-gray-700" data-testid="card-announcements">
+          <CardHeader>
+            <CardTitle className="text-xl font-bold text-white">📢 Announcements</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {announcements.slice(0, 3).map((announcement: Announcement) => (
+                <div
+                  key={announcement.id}
+                  className={`p-4 rounded-lg border-l-4 ${
+                    announcement.type === 'warning'
+                      ? 'bg-yellow-500/10 border-yellow-500'
+                      : announcement.type === 'promotion'
+                      ? 'bg-green-500/10 border-green-500'
+                      : 'bg-blue-500/10 border-blue-500'
+                  }`}
+                  data-testid={`announcement-${announcement.id}`}
+                >
+                  <h4 className="font-semibold text-white mb-2" data-testid={`announcement-title-${announcement.id}`}>
+                    {announcement.title}
+                  </h4>
+                  <p className="text-cmc-gray text-sm" data-testid={`announcement-content-${announcement.id}`}>
+                    {announcement.content}
+                  </p>
+                  <p className="text-xs text-cmc-gray mt-2">
+                    {new Date(announcement.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
       {/* Stats Cards */}
       <div className="grid lg:grid-cols-5 gap-6">
         <Card className="bg-cmc-card border-gray-700" data-testid="card-total-earnings">

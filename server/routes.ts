@@ -70,7 +70,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const transaction = await storage.createTransaction({
         ...transactionData,
         userId,
-        amount: plan.price, // USD amount from plan
+        amount: Number(plan.price), // USD amount from plan
       });
 
       res.json(transaction);
@@ -93,6 +93,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching mining contracts:", error);
       res.status(500).json({ message: "Failed to fetch mining contracts" });
+    }
+  });
+
+  // User mining contracts with plan details
+  app.get('/api/mining-contracts-with-plans', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const contracts = await storage.getUserMiningContracts(userId);
+      
+      // Fetch plan details for each contract
+      const contractsWithPlans = await Promise.all(
+        contracts.map(async (contract) => {
+          const plan = await storage.getMiningPlan(contract.planId);
+          return {
+            ...contract,
+            plan: plan
+          };
+        })
+      );
+      
+      res.json(contractsWithPlans);
+    } catch (error) {
+      console.error("Error fetching mining contracts with plans:", error);
+      res.status(500).json({ message: "Failed to fetch mining contracts with plans" });
     }
   });
 
@@ -252,18 +276,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const endDate = new Date();
           endDate.setMonth(endDate.getMonth() + plan.contractPeriod);
 
-          await storage.createMiningContract({
+          const contract = await storage.createMiningContract({
             userId: transaction.userId,
             planId: transaction.planId,
             transactionId: transaction.id,
             startDate,
             endDate,
             isActive: true,
-            totalEarnings: 0,
+            totalEarnings: "0",
           });
 
           // Start generating daily earnings for this contract
-          generateDailyEarnings(transaction.userId, plan);
+          generateDailyEarnings(transaction.userId.toString(), plan, contract.id);
         }
       }
 
@@ -282,7 +306,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { id } = req.params;
       const { reason } = req.body;
-      const transaction = await storage.rejectTransaction(id, req.user._id.toString(), reason);
+      const transaction = await storage.rejectTransaction(id, req.user.id, reason);
       
       if (!transaction) {
         return res.status(404).json({ message: "Transaction not found" });
@@ -440,16 +464,16 @@ async function initializeMiningPlans() {
       const plans = [
         {
           name: "Starter Plan",
-          price: 10,
-          miningRate: 1.0, // MH/s
-          dailyEarnings: 0.00000500, // BTC
-          monthlyRoi: 15.0, // percentage
-          contractPeriod: 12, // months
+          price: "10",
+          miningRate: "1.0", // MH/s
+          dailyEarnings: "0.00000500", // BTC
+          monthlyRoi: "15.0", // percentage
+          contractPeriod: 1, // months (changed to 1 month)
           description: "Perfect for beginners wanting to start their mining journey",
           features: [
             "1 MH/s mining power",
             "Daily BTC earnings",
-            "12-month contract",
+            "1-month contract",
             "15% monthly ROI",
             "Basic support"
           ],
@@ -457,16 +481,16 @@ async function initializeMiningPlans() {
         },
         {
           name: "Pro Plan",
-          price: 50,
-          miningRate: 5.0,
-          dailyEarnings: 0.00002800,
-          monthlyRoi: 18.0,
-          contractPeriod: 12,
+          price: "50",
+          miningRate: "5.0",
+          dailyEarnings: "0.00002800",
+          monthlyRoi: "18.0",
+          contractPeriod: 1,
           description: "For serious miners looking for better returns",
           features: [
             "5 MH/s mining power",
             "Higher daily earnings",
-            "12-month contract",
+            "1-month contract",
             "18% monthly ROI",
             "Priority support"
           ],
@@ -474,16 +498,16 @@ async function initializeMiningPlans() {
         },
         {
           name: "Enterprise Plan",
-          price: 200,
-          miningRate: 20.0,
-          dailyEarnings: 0.00012500,
-          monthlyRoi: 22.0,
-          contractPeriod: 12,
+          price: "200",
+          miningRate: "20.0",
+          dailyEarnings: "0.00012500",
+          monthlyRoi: "22.0",
+          contractPeriod: 1,
           description: "Maximum mining power for professional investors",
           features: [
             "20 MH/s mining power",
             "Maximum daily earnings",
-            "12-month contract",
+            "1-month contract",
             "22% monthly ROI",
             "VIP support",
             "Custom analytics"
@@ -527,7 +551,7 @@ async function initializeAdminUser() {
       console.log("Admin user already exists, updating credentials...");
       const hashedPassword = await bcrypt.hash(adminPassword, 12);
       
-      await storage.updateUser(existingAdmin._id.toString(), {
+      await storage.updateUser(existingAdmin.id, {
         password: hashedPassword,
         isAdmin: true,
         isEmailVerified: true,
@@ -555,13 +579,13 @@ async function fetchCryptoPrices() {
         await storage.upsertCryptoPrice({
           symbol: crypto.symbol.toUpperCase(),
           name: crypto.name,
-          price: crypto.current_price,
-          change1h: crypto.price_change_percentage_1h_in_currency,
-          change24h: crypto.price_change_percentage_24h,
-          change7d: crypto.price_change_percentage_7d_in_currency,
-          marketCap: crypto.market_cap,
-          volume24h: crypto.total_volume,
-          circulatingSupply: crypto.circulating_supply,
+          price: crypto.current_price.toString(),
+          change1h: crypto.price_change_percentage_1h_in_currency?.toString() || null,
+          change24h: crypto.price_change_percentage_24h?.toString() || null,
+          change7d: crypto.price_change_percentage_7d_in_currency?.toString() || null,
+          marketCap: crypto.market_cap?.toString() || null,
+          volume24h: crypto.total_volume?.toString() || null,
+          circulatingSupply: crypto.circulating_supply?.toString() || null,
           logoUrl: crypto.image,
         });
       }
@@ -581,7 +605,11 @@ async function fetchCryptoPrices() {
       ];
 
       for (const crypto of defaultPrices) {
-        await storage.upsertCryptoPrice(crypto);
+        await storage.upsertCryptoPrice({
+          ...crypto,
+          price: crypto.price.toString(),
+          change24h: crypto.change24h.toString()
+        });
       }
     } catch (fallbackError) {
       console.error("Error setting fallback prices:", fallbackError);
@@ -590,19 +618,20 @@ async function fetchCryptoPrices() {
 }
 
 // Generate daily earnings for active contracts
-async function generateDailyEarnings(userId: string, plan: any) {
+async function generateDailyEarnings(userId: string, plan: any, contractId: number) {
   try {
     // This would typically run as a scheduled job
     // For demo purposes, we'll just create one earning entry
     const btcPrice = await storage.getCryptoPrice('BTC');
-    const btcPriceUsd = btcPrice?.price || 45000;
+    const btcPriceUsd = Number(btcPrice?.price) || 45000;
+    const dailyEarningsAmount = Number(plan.dailyEarnings);
     
     await storage.createMiningEarning({
-      contractId: 'contract_id_placeholder', // This would be the actual contract ID
-      userId,
+      contractId,
+      userId: Number(userId),
       date: new Date(),
       amount: plan.dailyEarnings,
-      usdValue: plan.dailyEarnings * btcPriceUsd,
+      usdValue: (dailyEarningsAmount * btcPriceUsd).toString(),
     });
   } catch (error) {
     console.error("Error generating daily earnings:", error);
