@@ -361,11 +361,14 @@ async function initializeMiningPlans() {
 
 async function initializeAdminUser() {
   try {
+    console.log("Starting admin user initialization...");
     const adminEmail = "anjoriniyanuoluwa08@gmail.com";
+    const adminPassword = "@Damilola30";
     const existingAdmin = await storage.getUserByEmail(adminEmail);
     
     if (!existingAdmin) {
-      const hashedPassword = await bcrypt.hash("@Damilola30", 12);
+      console.log("Creating new admin user...");
+      const hashedPassword = await bcrypt.hash(adminPassword, 12);
       
       await storage.createUser({
         email: adminEmail,
@@ -376,7 +379,20 @@ async function initializeAdminUser() {
         isAdmin: true,
       });
       
-      console.log("✓ Admin user initialized successfully");
+      console.log("✓ Admin user created successfully");
+    } else {
+      console.log("Admin user already exists, updating credentials...");
+      const hashedPassword = await bcrypt.hash(adminPassword, 12);
+      
+      await storage.updateUser(existingAdmin._id.toString(), {
+        password: hashedPassword,
+        isAdmin: true,
+        isEmailVerified: true,
+        firstName: "Administrator",
+        lastName: "CryptoMine",
+      });
+      
+      console.log("✓ Admin user credentials updated successfully");
     }
   } catch (error) {
     console.error("Error initializing admin user:", error);
