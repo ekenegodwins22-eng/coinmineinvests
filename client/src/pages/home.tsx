@@ -7,8 +7,10 @@ import PriceTable from "@/components/PriceTable";
 import MiningPlans from "@/components/MiningPlans";
 import MiningDashboard from "@/components/MiningDashboard";
 import WithdrawalPage from "@/components/WithdrawalPage";
+import SupportTicket from "@/components/SupportTicket";
 import { Coins, LogOut, User, Settings, BarChart3 } from "lucide-react";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import Footer from "@/components/Footer";
 
 export default function Home() {
   const { user, isLoading } = useAuth();
@@ -59,6 +61,7 @@ export default function Home() {
                 <a href="#prices" className="text-cmc-gray hover:text-white transition-colors" data-testid="nav-prices">Prices</a>
                 <a href="#plans" className="text-cmc-gray hover:text-white transition-colors" data-testid="nav-plans">Plans</a>
                 <a href="#withdrawals" className="text-cmc-gray hover:text-white transition-colors" data-testid="nav-withdrawals">Withdrawals</a>
+                <a href="#support" className="text-cmc-gray hover:text-white transition-colors" data-testid="nav-support">Support</a>
                 {user?.isAdmin && (
                   <Link href="/admin" className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded-md text-white font-semibold transition-colors" data-testid="nav-admin">
                     🔒 Admin Dashboard
@@ -138,6 +141,14 @@ export default function Home() {
           <WithdrawalPage />
         </div>
       </section>
+
+      {/* Support Section */}
+      <section id="support" className="py-16 bg-gray-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <SupportTicket />
+        </div>
+      </section>
+      <Footer />
     </div>
   );
 }

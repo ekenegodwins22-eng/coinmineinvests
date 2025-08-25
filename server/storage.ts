@@ -8,6 +8,8 @@ import {
   withdrawals,
   cryptoPrices,
   announcements,
+  supportTickets,
+  supportTicketMessages,
   type User,
   type MiningPlan,
   type Transaction,
@@ -16,6 +18,8 @@ import {
   type Withdrawal,
   type CryptoPrice,
   type Announcement,
+  type SupportTicket,
+  type SupportTicketMessage,
   type NewUser,
   type NewMiningPlan,
   type NewTransaction,
@@ -24,9 +28,14 @@ import {
   type NewWithdrawal,
   type NewCryptoPrice,
   type NewAnnouncement,
+  type NewSupportTicket,
+  type NewSupportTicketMessage,
   type CreateTransactionData,
   type CreateWithdrawalData,
   type CreateAnnouncementData,
+  type CreateSupportTicketData,
+  type CreateTicketMessageData,
+  type UpdateTicketData,
 } from "@shared/schema";
 import { eq, desc, and, sql, sum } from 'drizzle-orm';
 
@@ -82,6 +91,17 @@ export interface IStorage {
   getAllAnnouncements(): Promise<Announcement[]>;
   updateAnnouncement(id: number, updates: Partial<Announcement>): Promise<Announcement | null>;
   deleteAnnouncement(id: number): Promise<boolean>;
+  
+  // Support Tickets
+  createSupportTicket(ticket: CreateSupportTicketData & { userId: number }): Promise<SupportTicket>;
+  getSupportTicket(id: number): Promise<SupportTicket | null>;
+  getUserSupportTickets(userId: number): Promise<SupportTicket[]>;
+  getAllSupportTickets(): Promise<SupportTicket[]>;
+  updateSupportTicket(id: number, updates: UpdateTicketData): Promise<SupportTicket | null>;
+  
+  // Support Ticket Messages
+  createTicketMessage(message: CreateTicketMessageData & { userId: number; isFromAdmin: boolean }): Promise<SupportTicketMessage>;
+  getTicketMessages(ticketId: number): Promise<SupportTicketMessage[]>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -301,6 +321,50 @@ export class PostgresStorage implements IStorage {
   async deleteAnnouncement(id: number): Promise<boolean> {
     const result = await db.delete(announcements).where(eq(announcements.id, id)).returning();
     return result.length > 0;
+  }
+
+  // Support Tickets implementation
+  async createSupportTicket(ticketData: CreateSupportTicketData & { userId: number }): Promise<SupportTicket> {
+    const result = await db.insert(supportTickets).values(ticketData as NewSupportTicket).returning();
+    return result[0];
+  }
+
+  async getSupportTicket(id: number): Promise<SupportTicket | null> {
+    const result = await db.select().from(supportTickets).where(eq(supportTickets.id, id)).limit(1);
+    return result[0] || null;
+  }
+
+  async getUserSupportTickets(userId: number): Promise<SupportTicket[]> {
+    return await db.select().from(supportTickets).where(eq(supportTickets.userId, userId)).orderBy(desc(supportTickets.createdAt));
+  }
+
+  async getAllSupportTickets(): Promise<SupportTicket[]> {
+    return await db.select().from(supportTickets).orderBy(desc(supportTickets.createdAt));
+  }
+
+  async updateSupportTicket(id: number, updates: UpdateTicketData): Promise<SupportTicket | null> {
+    const updateData: any = { ...updates, updatedAt: new Date() };
+    
+    if (updates.status === 'resolved') {
+      updateData.resolvedAt = new Date();
+    }
+    
+    const result = await db.update(supportTickets)
+      .set(updateData)
+      .where(eq(supportTickets.id, id))
+      .returning();
+    
+    return result[0] || null;
+  }
+
+  // Support Ticket Messages implementation
+  async createTicketMessage(messageData: CreateTicketMessageData & { userId: number; isFromAdmin: boolean }): Promise<SupportTicketMessage> {
+    const result = await db.insert(supportTicketMessages).values(messageData as NewSupportTicketMessage).returning();
+    return result[0];
+  }
+
+  async getTicketMessages(ticketId: number): Promise<SupportTicketMessage[]> {
+    return await db.select().from(supportTicketMessages).where(eq(supportTicketMessages.ticketId, ticketId)).orderBy(supportTicketMessages.createdAt);
   }
 }
 

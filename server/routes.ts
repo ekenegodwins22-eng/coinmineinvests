@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, isAdmin } from "./auth";
-import { createTransactionSchema, createWithdrawalSchema, createAnnouncementSchema, PAYMENT_ADDRESSES } from "@shared/schema";
+import { createTransactionSchema, createWithdrawalSchema, createAnnouncementSchema, createSupportTicketSchema, createTicketMessageSchema, updateTicketSchema, PAYMENT_ADDRESSES } from "@shared/schema";
 import { z } from "zod";
 import axios from 'axios';
 import bcrypt from 'bcryptjs';
@@ -452,6 +452,123 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Support Ticket endpoints
+
+  // Get user's support tickets
+  app.get('/api/support-tickets', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const tickets = await storage.getUserSupportTickets(userId);
+      res.json(tickets);
+    } catch (error) {
+      console.error("Error fetching support tickets:", error);
+      res.status(500).json({ message: "Failed to fetch support tickets" });
+    }
+  });
+
+  // Create a new support ticket
+  app.post('/api/support-tickets', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const ticketData = createSupportTicketSchema.parse(req.body);
+      
+      const ticket = await storage.createSupportTicket({
+        ...ticketData,
+        userId,
+      });
+      
+      res.status(201).json(ticket);
+    } catch (error) {
+      console.error("Error creating support ticket:", error);
+      res.status(500).json({ message: "Failed to create support ticket" });
+    }
+  });
+
+  // Get ticket messages
+  app.get('/api/support-tickets/:ticketId/messages', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const ticketId = parseInt(req.params.ticketId);
+      
+      // Verify user owns this ticket or is admin
+      const ticket = await storage.getSupportTicket(ticketId);
+      if (!ticket || (ticket.userId !== userId && !req.user.isAdmin)) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+      
+      const messages = await storage.getTicketMessages(ticketId);
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching ticket messages:", error);
+      res.status(500).json({ message: "Failed to fetch ticket messages" });
+    }
+  });
+
+  // Add message to ticket
+  app.post('/api/support-tickets/:ticketId/messages', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const ticketId = parseInt(req.params.ticketId);
+      const messageData = createTicketMessageSchema.parse({
+        ...req.body,
+        ticketId
+      });
+      
+      // Verify user owns this ticket or is admin
+      const ticket = await storage.getSupportTicket(ticketId);
+      if (!ticket || (ticket.userId !== userId && !req.user.isAdmin)) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+      
+      const message = await storage.createTicketMessage({
+        ...messageData,
+        userId,
+        isFromAdmin: req.user.isAdmin,
+      });
+      
+      // Update ticket status if it was resolved and user is replying
+      if (ticket.status === 'resolved' && !req.user.isAdmin) {
+        await storage.updateSupportTicket(ticketId, { status: 'open' });
+      }
+      
+      res.status(201).json(message);
+    } catch (error) {
+      console.error("Error creating ticket message:", error);
+      res.status(500).json({ message: "Failed to create ticket message" });
+    }
+  });
+
+  // Admin-only endpoints
+
+  // Get all support tickets (admin)
+  app.get('/api/admin/support-tickets', isAdmin, async (req: any, res) => {
+    try {
+      const tickets = await storage.getAllSupportTickets();
+      res.json(tickets);
+    } catch (error) {
+      console.error("Error fetching all support tickets:", error);
+      res.status(500).json({ message: "Failed to fetch support tickets" });
+    }
+  });
+
+  // Update ticket status/assignment (admin)
+  app.patch('/api/admin/support-tickets/:ticketId', isAdmin, async (req: any, res) => {
+    try {
+      const ticketId = parseInt(req.params.ticketId);
+      const updateData = updateTicketSchema.parse(req.body);
+      
+      if (updateData.status === 'resolved' && !updateData.assignedTo) {
+        updateData.assignedTo = req.user.id;
+      }
+      
+      const ticket = await storage.updateSupportTicket(ticketId, updateData);
+      res.json(ticket);
+    } catch (error) {
+      console.error("Error updating support ticket:", error);
+      res.status(500).json({ message: "Failed to update support ticket" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
@@ -668,3 +785,4 @@ function startPriceUpdateService() {
   
   console.log("✓ Price update service started");
 }
+

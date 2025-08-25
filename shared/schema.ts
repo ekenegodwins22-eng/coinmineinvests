@@ -5,6 +5,8 @@ import { z } from "zod";
 // Status enums
 export const transactionStatusEnum = pgEnum('transaction_status', ['pending', 'approved', 'rejected']);
 export const withdrawalStatusEnum = pgEnum('withdrawal_status', ['pending', 'processing', 'completed', 'rejected']);
+export const ticketStatusEnum = pgEnum('ticket_status', ['open', 'in_progress', 'resolved', 'closed']);
+export const ticketPriorityEnum = pgEnum('ticket_priority', ['low', 'medium', 'high', 'urgent']);
 
 // User table
 export const users = pgTable('users', {
@@ -124,6 +126,33 @@ export const announcements = pgTable('announcements', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+// Support Tickets table
+export const supportTickets = pgTable('support_tickets', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull(),
+  subject: varchar('subject', { length: 255 }).notNull(),
+  description: text('description').notNull(),
+  status: ticketStatusEnum('status').default('open').notNull(),
+  priority: ticketPriorityEnum('priority').default('medium').notNull(),
+  category: varchar('category', { length: 100 }).notNull(), // 'technical', 'payment', 'account', 'general'
+  assignedTo: integer('assigned_to'), // admin user ID
+  assignedAt: timestamp('assigned_at'),
+  resolvedAt: timestamp('resolved_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Support Ticket Messages table
+export const supportTicketMessages = pgTable('support_ticket_messages', {
+  id: serial('id').primaryKey(),
+  ticketId: integer('ticket_id').notNull(),
+  userId: integer('user_id').notNull(),
+  message: text('message').notNull(),
+  isFromAdmin: boolean('is_from_admin').default(false).notNull(),
+  attachments: text('attachments').array(), // Array of file URLs
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // Zod schemas for validation
 export const createUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -166,6 +195,25 @@ export const createAnnouncementSchema = z.object({
   isActive: z.boolean().default(true),
 });
 
+export const createSupportTicketSchema = z.object({
+  subject: z.string().min(1, "Subject is required"),
+  description: z.string().min(1, "Description is required"),
+  category: z.enum(['technical', 'payment', 'account', 'general']),
+  priority: z.enum(['low', 'medium', 'high', 'urgent']).default('medium'),
+});
+
+export const createTicketMessageSchema = z.object({
+  ticketId: z.number(),
+  message: z.string().min(1, "Message is required"),
+  attachments: z.array(z.string()).optional(),
+});
+
+export const updateTicketSchema = z.object({
+  status: z.enum(['open', 'in_progress', 'resolved', 'closed']).optional(),
+  priority: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
+  assignedTo: z.number().optional(),
+});
+
 // Type definitions
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -183,12 +231,19 @@ export type CryptoPrice = typeof cryptoPrices.$inferSelect;
 export type NewCryptoPrice = typeof cryptoPrices.$inferInsert;
 export type Announcement = typeof announcements.$inferSelect;
 export type NewAnnouncement = typeof announcements.$inferInsert;
+export type SupportTicket = typeof supportTickets.$inferSelect;
+export type NewSupportTicket = typeof supportTickets.$inferInsert;
+export type SupportTicketMessage = typeof supportTicketMessages.$inferSelect;
+export type NewSupportTicketMessage = typeof supportTicketMessages.$inferInsert;
 
 export type LoginData = z.infer<typeof loginSchema>;
 export type RegisterData = z.infer<typeof registerSchema>;
 export type CreateTransactionData = z.infer<typeof createTransactionSchema>;
 export type CreateWithdrawalData = z.infer<typeof createWithdrawalSchema>;
 export type CreateAnnouncementData = z.infer<typeof createAnnouncementSchema>;
+export type CreateSupportTicketData = z.infer<typeof createSupportTicketSchema>;
+export type CreateTicketMessageData = z.infer<typeof createTicketMessageSchema>;
+export type UpdateTicketData = z.infer<typeof updateTicketSchema>;
 
 // Crypto payment addresses
 export const PAYMENT_ADDRESSES = {

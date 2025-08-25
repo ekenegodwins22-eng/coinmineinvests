@@ -11,11 +11,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Link, useLocation } from "wouter";
-import { ArrowLeft, Check, X, Clock, DollarSign, Users, TrendingUp, TrendingDown, Megaphone, Plus, Edit, Trash2 } from "lucide-react";
+import { ArrowLeft, Check, X, Clock, DollarSign, Users, TrendingUp, TrendingDown, Megaphone, Plus, Edit, Trash2, Headphones } from "lucide-react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import AdminSupportTickets from "@/components/AdminSupportTickets";
 
 interface Transaction {
   id: number;
@@ -329,12 +331,17 @@ export default function Admin() {
           </Card>
         </div>
 
-        {/* Transactions Table */}
-        <Card className="bg-cmc-card border-gray-700" data-testid="card-transactions">
-          <CardHeader>
-            <CardTitle className="text-xl font-bold text-white">Pending Transactions</CardTitle>
-          </CardHeader>
-          <CardContent>
+        {/* Support Ticket Management */}
+        <div className="mb-8">
+          <AdminSupportTickets />
+        </div>
+
+        {/* Transactions */}
+            <Card className="bg-cmc-card border-gray-700" data-testid="card-transactions">
+              <CardHeader>
+                <CardTitle className="text-xl font-bold text-white">Pending Transactions</CardTitle>
+              </CardHeader>
+              <CardContent>
             {transactionsLoading ? (
               <div className="text-center py-8">
                 <div className="text-cmc-gray">Loading transactions...</div>
@@ -465,27 +472,42 @@ export default function Admin() {
                 </Table>
               </div>
             )}
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-        {/* Announcements Management */}
-        <Card className="bg-cmc-card border-gray-700" data-testid="card-announcements">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Megaphone className="text-orange-500 text-xl" />
-              <CardTitle className="text-xl font-bold text-white">Announcements & Promotions</CardTitle>
-            </div>
-            <Button 
+          <TabsContent value="withdrawals">
+            {/* Withdrawals Management */}
+            <Card className="bg-cmc-card border-gray-700" data-testid="card-withdrawals">
+              <CardHeader>
+                <CardTitle className="text-xl font-bold text-white">Pending Withdrawals</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8">
+                  <div className="text-cmc-gray">Withdrawal management coming soon...</div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="announcements">
+            <Card className="bg-cmc-card border-gray-700" data-testid="card-announcements">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Megaphone className="text-orange-500 text-xl" />
+                  <CardTitle className="text-xl font-bold text-white">Announcements & Promotions</CardTitle>
+                </div>
+                <Button 
               onClick={() => setShowCreateAnnouncement(true)}
               className="bg-orange-500 hover:bg-orange-600"
               data-testid="button-create-announcement"
             >
               <Plus className="w-4 h-4 mr-1" />
               Create Announcement
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {announcementsLoading ? (
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {announcementsLoading ? (
               <div className="text-center py-8">
                 <div className="text-cmc-gray">Loading announcements...</div>
               </div>
@@ -546,19 +568,19 @@ export default function Admin() {
                   </div>
                 ))}
               </div>
-            )}
-          </CardContent>
-        </Card>
+                )}
+              </CardContent>
+            </Card>
 
-        {/* Create/Edit Announcement Dialog */}
-        <Dialog open={showCreateAnnouncement || !!editingAnnouncement} onOpenChange={(open) => {
+            {/* Create/Edit Announcement Dialog */}
+            <Dialog open={showCreateAnnouncement || !!editingAnnouncement} onOpenChange={(open) => {
           if (!open) {
-            setShowCreateAnnouncement(false);
-            setEditingAnnouncement(null);
-            setAnnouncementForm({ title: "", content: "", type: "promotion", isActive: true });
-          }
-        }}>
-          <DialogContent className="bg-cmc-card border-gray-700 max-w-2xl">
+                setShowCreateAnnouncement(false);
+              setEditingAnnouncement(null);
+              setAnnouncementForm({ title: "", content: "", type: "promotion", isActive: true });
+            }
+            }}>
+            <DialogContent className="bg-cmc-card border-gray-700 max-w-2xl">
             <DialogHeader>
               <DialogTitle className="text-white">
                 {editingAnnouncement ? 'Edit Announcement' : 'Create New Announcement'}
@@ -644,6 +666,14 @@ export default function Admin() {
             </div>
           </DialogContent>
         </Dialog>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="support">
+            <AdminSupportTickets />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

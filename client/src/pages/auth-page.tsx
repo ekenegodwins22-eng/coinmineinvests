@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2, TrendingUp, Shield, Coins, Zap, BarChart3, Users, Award } from "lucide-react";
 import { z } from "zod";
+import Footer from "@/components/Footer";
 
 // Client-side validation schemas
 const loginSchema = z.object({
@@ -62,7 +63,7 @@ export default function AuthPage() {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 overflow-hidden relative">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 overflow-hidden relative flex flex-col">
       {/* Background Effects */}
       <div className="absolute inset-0 opacity-20 bg-gray-800/10"></div>
       
@@ -174,19 +175,46 @@ export default function AuthPage() {
               </div>
             </div>
 
-            {/* Stats Section */}
-            <div className="grid grid-cols-3 gap-6">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-400">24/7</div>
-                <div className="text-gray-400 text-sm">Mining Operations</div>
+            {/* Enhanced Stats Section */}
+            <div className="bg-gray-800/60 backdrop-blur-lg rounded-2xl p-6 border border-gray-600/50">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-green-400">$500K+</div>
+                  <div className="text-gray-300 text-sm font-medium">Total Payouts</div>
+                  <div className="text-xs text-gray-400">Paid to miners</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-blue-400">2,500+</div>
+                  <div className="text-gray-300 text-sm font-medium">Active Miners</div>
+                  <div className="text-xs text-gray-400">Worldwide</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-purple-400">99.9%</div>
+                  <div className="text-gray-300 text-sm font-medium">Uptime</div>
+                  <div className="text-xs text-gray-400">Guaranteed</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-orange-400">24/7</div>
+                  <div className="text-gray-300 text-sm font-medium">Support</div>
+                  <div className="text-xs text-gray-400">Always available</div>
+                </div>
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-400">5+</div>
-                <div className="text-gray-400 text-sm">Crypto Payments</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-purple-400">99.9%</div>
-                <div className="text-gray-400 text-sm">Uptime</div>
+              
+              <div className="mt-6 pt-6 border-t border-gray-600/50">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 text-center">
+                  <div>
+                    <div className="text-xl font-bold text-yellow-400">15-25%</div>
+                    <div className="text-sm text-gray-300">Monthly ROI</div>
+                  </div>
+                  <div>
+                    <div className="text-xl font-bold text-green-400">1,200+ TH/s</div>
+                    <div className="text-sm text-gray-300">Total Mining Power</div>
+                  </div>
+                  <div>
+                    <div className="text-xl font-bold text-blue-400">50+ Countries</div>
+                    <div className="text-sm text-gray-300">Global Reach</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -405,8 +433,9 @@ export default function AuthPage() {
             </CardContent>
           </Card>
         </div>
+        </div>
       </div>
+      <Footer />
     </div>
-  </div>
   );
 }
