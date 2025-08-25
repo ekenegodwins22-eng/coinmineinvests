@@ -3,6 +3,24 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
+
+// Environment variable validation
+const requiredEnvVars = ['SESSION_SECRET'];
+const dbVar = process.env.MONGODB_URI || process.env.DATABASE_URL;
+if (!dbVar) {
+  console.error('❌ Missing required database environment variable: MONGODB_URI or DATABASE_URL');
+  process.exit(1);
+}
+
+const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+if (missingVars.length > 0) {
+  console.error('❌ Missing required environment variables:', missingVars.join(', '));
+  console.error('Please set these variables in your environment or .env file');
+  process.exit(1);
+}
+
+console.log('✓ Environment variables validated');
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 

@@ -9,11 +9,11 @@ import MongoStore from 'connect-mongo';
 // Session configuration
 export function setupSession(app: Express) {
   app.use(session({
-    secret: process.env.SESSION_SECRET || 'your-secret-key-change-this-in-production',
+    secret: process.env.SESSION_SECRET!,
     resave: false,
     saveUninitialized: false,
     store: MongoStore.create({
-      mongoUrl: "mongodb+srv://clonedatabase:clonedatabase@clonedatabase.hfmunxm.mongodb.net/?retryWrites=true&w=majority&appName=CLONEDATABASE",
+      mongoUrl: process.env.MONGODB_URI || process.env.DATABASE_URL!,
       touchAfter: 24 * 3600 // lazy session update
     }),
     cookie: {

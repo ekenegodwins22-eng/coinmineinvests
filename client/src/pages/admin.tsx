@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { ArrowLeft, Check, X, Clock, DollarSign, Users, TrendingUp, TrendingDown } from "lucide-react";
 import { useState } from "react";
 
@@ -54,6 +54,7 @@ export default function Admin() {
   const queryClient = useQueryClient();
   const [rejectReason, setRejectReason] = useState("");
   const [selectedTransaction, setSelectedTransaction] = useState<string | null>(null);
+  const [, setLocation] = useLocation();
 
   useEffect(() => {
     if (!isLoading && (!user || !user.isAdmin)) {
@@ -63,13 +64,13 @@ export default function Admin() {
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/";
+        setLocation("/");
       }, 500);
       return;
     }
-  }, [user, isLoading, toast]);
+  }, [user, isLoading, toast, setLocation]);
 
-  const { data: transactions = [], isLoading: transactionsLoading } = useQuery({
+  const { data: transactions = [], isLoading: transactionsLoading } = useQuery<Transaction[]>({
     queryKey: ["/api/admin/transactions"],
     enabled: !!user?.isAdmin,
   });
@@ -79,7 +80,7 @@ export default function Admin() {
     enabled: !!user?.isAdmin,
   });
 
-  const { data: withdrawals = [], isLoading: withdrawalsLoading } = useQuery({
+  const { data: withdrawals = [], isLoading: withdrawalsLoading } = useQuery<Withdrawal[]>({
     queryKey: ["/api/admin/withdrawals"],
     enabled: !!user?.isAdmin,
   });

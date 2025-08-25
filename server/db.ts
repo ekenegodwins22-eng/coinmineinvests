@@ -1,9 +1,9 @@
 import mongoose from 'mongoose';
 
-const MONGODB_URI = "mongodb+srv://clonedatabase:clonedatabase@clonedatabase.hfmunxm.mongodb.net/?retryWrites=true&w=majority&appName=CLONEDATABASE";
+const MONGODB_URI = process.env.MONGODB_URI || process.env.DATABASE_URL;
 
 if (!MONGODB_URI) {
-  throw new Error('MongoDB URI must be set');
+  throw new Error('MONGODB_URI or DATABASE_URL environment variable must be set');
 }
 
 // Global is used here to maintain a cached connection across hot reloads in development
@@ -23,7 +23,7 @@ async function connectDB() {
       bufferCommands: false,
     };
 
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
+    cached.promise = mongoose.connect(MONGODB_URI!, opts).then((mongoose) => {
       return mongoose;
     });
   }

@@ -65,88 +65,91 @@ export interface IStorage {
 }
 
 export class MongoStorage implements IStorage {
+  private initialized = false;
+
   constructor() {
-    connectDB();
+    this.init();
+  }
+
+  private async init() {
+    if (!this.initialized) {
+      await connectDB();
+      this.initialized = true;
+    }
+  }
+
+  private async ensureConnected() {
+    if (!this.initialized) {
+      await this.init();
+    }
   }
 
   // User operations
   async getUser(id: string): Promise<IUser | null> {
-    await connectDB();
+    await this.ensureConnected();
     return await User.findById(id);
   }
 
   async getUserByEmail(email: string): Promise<IUser | null> {
-    await connectDB();
+    await this.ensureConnected();
     return await User.findOne({ email });
   }
 
   async getUserByGoogleId(googleId: string): Promise<IUser | null> {
-    await connectDB();
     return await User.findOne({ googleId });
   }
 
   async createUser(userData: Partial<IUser>): Promise<IUser> {
-    await connectDB();
     const user = new User(userData);
     return await user.save();
   }
 
   async updateUser(id: string, updates: Partial<IUser>): Promise<IUser | null> {
-    await connectDB();
     return await User.findByIdAndUpdate(id, updates, { new: true });
   }
 
   async getTotalUsers(): Promise<number> {
-    await connectDB();
     return await User.countDocuments();
   }
 
   // Mining plans
   async getMiningPlans(): Promise<IMiningPlan[]> {
-    await connectDB();
+    await this.ensureConnected();
     return await MiningPlan.find({ isActive: true }).sort({ price: 1 });
   }
 
   async getMiningPlan(id: string): Promise<IMiningPlan | null> {
-    await connectDB();
     return await MiningPlan.findById(id);
   }
 
   async createMiningPlan(planData: Partial<IMiningPlan>): Promise<IMiningPlan> {
-    await connectDB();
     const plan = new MiningPlan(planData);
     return await plan.save();
   }
 
   // Transactions
   async createTransaction(transactionData: CreateTransactionData & { userId: string; amount: number }): Promise<ITransaction> {
-    await connectDB();
     const transaction = new Transaction(transactionData);
     return await transaction.save();
   }
 
   async getTransaction(id: string): Promise<ITransaction | null> {
-    await connectDB();
     return await Transaction.findById(id);
   }
 
   async getUserTransactions(userId: string): Promise<ITransaction[]> {
-    await connectDB();
     return await Transaction.find({ userId }).sort({ createdAt: -1 });
   }
 
   async getPendingTransactions(): Promise<ITransaction[]> {
-    await connectDB();
     return await Transaction.find({ status: 'pending' }).sort({ createdAt: -1 });
   }
 
   async getAllTransactions(): Promise<ITransaction[]> {
-    await connectDB();
     return await Transaction.find().sort({ createdAt: -1 });
   }
 
   async approveTransaction(id: string, approvedBy: string): Promise<ITransaction | null> {
-    await connectDB();
     return await Transaction.findByIdAndUpdate(
       id,
       {
@@ -159,7 +162,6 @@ export class MongoStorage implements IStorage {
   }
 
   async rejectTransaction(id: string, approvedBy: string, reason: string): Promise<ITransaction | null> {
-    await connectDB();
     return await Transaction.findByIdAndUpdate(
       id,
       {
@@ -173,18 +175,15 @@ export class MongoStorage implements IStorage {
 
   // Mining contracts
   async createMiningContract(contractData: Partial<IMiningContract>): Promise<IMiningContract> {
-    await connectDB();
     const contract = new MiningContract(contractData);
     return await contract.save();
   }
 
   async getUserMiningContracts(userId: string): Promise<IMiningContract[]> {
-    await connectDB();
     return await MiningContract.find({ userId }).sort({ createdAt: -1 });
   }
 
   async getActiveMiningContracts(): Promise<IMiningContract[]> {
-    await connectDB();
     return await MiningContract.find({
       isActive: true,
       endDate: { $gte: new Date() }
@@ -193,18 +192,15 @@ export class MongoStorage implements IStorage {
 
   // Mining earnings
   async createMiningEarning(earningData: Partial<IMiningEarning>): Promise<IMiningEarning> {
-    await connectDB();
     const earning = new MiningEarning(earningData);
     return await earning.save();
   }
 
   async getUserEarnings(userId: string): Promise<IMiningEarning[]> {
-    await connectDB();
     return await MiningEarning.find({ userId }).sort({ date: -1 });
   }
 
   async getUserTotalEarnings(userId: string): Promise<{ totalBtc: number; totalUsd: number }> {
-    await connectDB();
     const result = await MiningEarning.aggregate([
       { $match: { userId } },
       {
@@ -224,34 +220,29 @@ export class MongoStorage implements IStorage {
 
   // Withdrawals
   async createWithdrawal(withdrawalData: CreateWithdrawalData & { userId: string }): Promise<IWithdrawal> {
-    await connectDB();
     const withdrawal = new Withdrawal(withdrawalData);
     return await withdrawal.save();
   }
 
   async getUserWithdrawals(userId: string): Promise<IWithdrawal[]> {
-    await connectDB();
     return await Withdrawal.find({ userId }).sort({ createdAt: -1 });
   }
 
   async getPendingWithdrawals(): Promise<IWithdrawal[]> {
-    await connectDB();
     return await Withdrawal.find({ status: 'pending' }).sort({ createdAt: -1 });
   }
 
   async getAllWithdrawals(): Promise<IWithdrawal[]> {
-    await connectDB();
     return await Withdrawal.find().sort({ createdAt: -1 });
   }
 
   async updateWithdrawal(id: string, updates: Partial<IWithdrawal>): Promise<IWithdrawal | null> {
-    await connectDB();
     return await Withdrawal.findByIdAndUpdate(id, updates, { new: true });
   }
 
   // Crypto prices
   async upsertCryptoPrice(priceData: Partial<ICryptoPrice>): Promise<ICryptoPrice> {
-    await connectDB();
+    await this.ensureConnected();
     return await CryptoPrice.findOneAndUpdate(
       { symbol: priceData.symbol },
       priceData,
@@ -260,12 +251,10 @@ export class MongoStorage implements IStorage {
   }
 
   async getCryptoPrices(): Promise<ICryptoPrice[]> {
-    await connectDB();
     return await CryptoPrice.find().sort({ updatedAt: -1 });
   }
 
   async getCryptoPrice(symbol: string): Promise<ICryptoPrice | null> {
-    await connectDB();
     return await CryptoPrice.findOne({ symbol });
   }
 }

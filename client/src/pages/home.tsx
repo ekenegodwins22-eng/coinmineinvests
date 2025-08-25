@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import PriceTable from "@/components/PriceTable";
 import MiningPlans from "@/components/MiningPlans";
 import MiningDashboard from "@/components/MiningDashboard";
@@ -13,20 +13,21 @@ import { isUnauthorizedError } from "@/lib/authUtils";
 export default function Home() {
   const { user, isLoading } = useAuth();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   useEffect(() => {
     if (!isLoading && !user) {
       toast({
         title: "Unauthorized", 
-        description: "You are logged out. Logging in again...",
+        description: "You are logged out. Redirecting to login...",
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/api/login";
+        setLocation("/auth");
       }, 500);
       return;
     }
-  }, [user, isLoading, toast]);
+  }, [user, isLoading, toast, setLocation]);
 
   const { logoutMutation } = useAuth();
 

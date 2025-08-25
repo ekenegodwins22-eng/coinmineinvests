@@ -2,11 +2,9 @@ import { Button } from "@/components/ui/button";
 import PriceTable from "@/components/PriceTable";
 import MiningPlans from "@/components/MiningPlans";
 import { Coins, TrendingUp, Shield, Users } from "lucide-react";
+import { Link } from "wouter";
 
 export default function Landing() {
-  const handleLogin = () => {
-    window.location.href = "/api/login";
-  };
 
   return (
     <div className="min-h-screen bg-cmc-dark text-white">
@@ -26,21 +24,23 @@ export default function Landing() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <Button 
-                variant="outline" 
-                onClick={handleLogin}
-                className="border-cmc-blue text-cmc-blue hover:bg-cmc-blue hover:text-white"
-                data-testid="button-login"
-              >
-                Login
-              </Button>
-              <Button 
-                onClick={handleLogin}
-                className="bg-cmc-blue hover:bg-blue-600"
-                data-testid="button-signup"
-              >
-                Sign Up
-              </Button>
+              <Link href="/auth">
+                <Button 
+                  variant="outline" 
+                  className="border-cmc-blue text-cmc-blue hover:bg-cmc-blue hover:text-white"
+                  data-testid="button-login"
+                >
+                  Login
+                </Button>
+              </Link>
+              <Link href="/auth">
+                <Button 
+                  className="bg-cmc-blue hover:bg-blue-600"
+                  data-testid="button-signup"
+                >
+                  Sign Up
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
@@ -59,13 +59,14 @@ export default function Landing() {
                 Start with as little as $10 and scale your mining operations.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button 
-                  onClick={handleLogin}
-                  className="bg-cmc-blue text-white px-8 py-4 text-lg hover:bg-blue-600"
-                  data-testid="button-start-mining"
-                >
-                  Start Mining Now
-                </Button>
+                <Link href="/auth">
+                  <Button 
+                    className="bg-cmc-blue text-white px-8 py-4 text-lg hover:bg-blue-600"
+                    data-testid="button-start-mining"
+                  >
+                    Start Mining Now
+                  </Button>
+                </Link>
                 <Button 
                   variant="outline"
                   className="border-gray-600 text-white px-8 py-4 text-lg hover:border-cmc-blue"

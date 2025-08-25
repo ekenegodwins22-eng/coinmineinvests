@@ -166,7 +166,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const totalDeposits = allTransactions
         .filter(tx => tx.status === 'approved')
-        .reduce((sum, tx) => sum + parseFloat(tx.amount), 0);
+        .reduce((sum, tx) => sum + parseFloat(tx.amount.toString()), 0);
       
       const totalWithdrawals = allWithdrawals
         .filter(w => w.status === 'completed')
