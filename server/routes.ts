@@ -813,12 +813,12 @@ function startDailyEarningsService() {
 
 // Start the price update service
 function startPriceUpdateService() {
-  // Update prices every 5 minutes
-  setInterval(fetchCryptoPrices, 5 * 60 * 1000);
+  // Update prices every 1 minute for more real-time conversion rates
+  setInterval(fetchCryptoPrices, 1 * 60 * 1000);
   
   // Initial fetch
   fetchCryptoPrices();
   
-  console.log("✓ Price update service started");
+  console.log("✓ Price update service started - updating every minute for real-time rates");
 }
 
