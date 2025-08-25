@@ -5,54 +5,59 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Coins, Zap, Clock, TrendingUp } from "lucide-react";
 
 interface MiningEarning {
-  id: string;
-  amount: string;
-  usdValue: string;
+  _id: string;
+  amount: number;
+  usdValue: number;
   date: string;
 }
 
 interface MiningContract {
-  id: string;
+  _id: string;
   planId: string;
   startDate: string;
   endDate: string;
   isActive: boolean;
-  totalEarnings: string;
+  totalEarnings: number;
 }
 
 interface Transaction {
-  id: string;
-  amount: string;
+  _id: string;
+  amount: number;
   currency: string;
   status: string;
   createdAt: string;
 }
 
+interface EarningsData {
+  earnings: MiningEarning[];
+  totals: { totalBtc: number; totalUsd: number };
+}
+
 export default function MiningDashboard() {
-  const { data: earningsData, isLoading: earningsLoading } = useQuery({
+  const { data: earningsData, isLoading: earningsLoading } = useQuery<EarningsData>({
     queryKey: ["/api/earnings"],
   });
 
-  const { data: contracts = [], isLoading: contractsLoading } = useQuery({
+  const { data: contracts = [], isLoading: contractsLoading } = useQuery<MiningContract[]>({
     queryKey: ["/api/mining-contracts"],
   });
 
-  const { data: transactions = [], isLoading: transactionsLoading } = useQuery({
+  const { data: transactions = [], isLoading: transactionsLoading } = useQuery<Transaction[]>({
     queryKey: ["/api/transactions"],
   });
 
   const earnings = earningsData?.earnings || [];
-  const totals = earningsData?.totals || { totalBtc: "0", totalUsd: "0" };
+  const totals = earningsData?.totals || { totalBtc: 0, totalUsd: 0 };
 
   const activeContracts = contracts.filter((contract: MiningContract) => contract.isActive);
   const totalMiningRate = activeContracts.length * 5; // Assuming average 5 MH/s per contract
 
-  const formatBtc = (amount: string) => {
-    return `${parseFloat(amount).toFixed(8)} BTC`;
+  const formatBtc = (amount: number | string) => {
+    return `${Number(amount).toFixed(8)} BTC`;
   };
 
-  const formatUsd = (amount: string) => {
-    return `$${parseFloat(amount).toFixed(2)}`;
+  const formatUsd = (amount: number | string) => {
+    return `$${Number(amount).toFixed(2)}`;
   };
 
   if (earningsLoading || contractsLoading || transactionsLoading) {
@@ -82,7 +87,7 @@ export default function MiningDashboard() {
             <div className="mt-4 bg-cmc-dark rounded-lg p-3">
               <div className="text-sm text-cmc-gray mb-1">Today's Earnings</div>
               <div className="text-lg font-semibold text-cmc-green" data-testid="text-today-earnings">
-                {earnings.length > 0 ? `+${formatBtc(earnings[0].amount)}` : "+0.00000000 BTC"}
+                {earnings.length > 0 ? `+${formatBtc(earnings[0]?.amount || 0)}` : "+0.00000000 BTC"}
               </div>
             </div>
           </CardContent>

@@ -1,174 +1,213 @@
-import { sql, relations } from "drizzle-orm";
-import {
-  index,
-  jsonb,
-  pgTable,
-  timestamp,
-  varchar,
-  text,
-  decimal,
-  integer,
-  boolean,
-} from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
+import mongoose, { Schema, Document } from 'mongoose';
+import { z } from 'zod';
 
-// Session storage table - mandatory for Replit Auth
-export const sessions = pgTable(
-  "sessions",
-  {
-    sid: varchar("sid").primaryKey(),
-    sess: jsonb("sess").notNull(),
-    expire: timestamp("expire").notNull(),
-  },
-  (table) => [index("IDX_session_expire").on(table.expire)],
-);
+// User Schema
+export interface IUser extends Document {
+  _id: string;
+  email: string;
+  password?: string;
+  firstName?: string;
+  lastName?: string;
+  profileImageUrl?: string;
+  googleId?: string;
+  isAdmin: boolean;
+  isEmailVerified: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
-// User storage table with email/password and Google auth
-export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  email: varchar("email").unique().notNull(),
-  password: varchar("password"), // For email/password login
-  firstName: varchar("first_name"),
-  lastName: varchar("last_name"),
-  profileImageUrl: varchar("profile_image_url"),
-  googleId: varchar("google_id").unique(), // For Google OAuth
-  isAdmin: boolean("is_admin").default(false),
-  isEmailVerified: boolean("is_email_verified").default(false),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+const userSchema = new Schema<IUser>({
+  email: { type: String, required: true, unique: true },
+  password: { type: String },
+  firstName: { type: String },
+  lastName: { type: String },
+  profileImageUrl: { type: String },
+  googleId: { type: String, unique: true, sparse: true },
+  isAdmin: { type: Boolean, default: false },
+  isEmailVerified: { type: Boolean, default: false },
+}, {
+  timestamps: true
 });
 
-// Mining plans
-export const miningPlans = pgTable("mining_plans", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: varchar("name").notNull(),
-  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-  miningRate: decimal("mining_rate", { precision: 10, scale: 2 }).notNull(), // MH/s
-  dailyEarnings: decimal("daily_earnings", { precision: 10, scale: 8 }).notNull(), // BTC
-  monthlyRoi: decimal("monthly_roi", { precision: 5, scale: 2 }).notNull(), // percentage
-  contractPeriod: integer("contract_period").notNull(), // months
-  isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").defaultNow(),
+// Mining Plan Schema
+export interface IMiningPlan extends Document {
+  _id: string;
+  name: string;
+  price: number;
+  miningRate: number; // MH/s
+  dailyEarnings: number; // BTC
+  monthlyRoi: number; // percentage
+  contractPeriod: number; // months
+  isActive: boolean;
+  description: string;
+  features: string[];
+  createdAt: Date;
+}
+
+const miningPlanSchema = new Schema<IMiningPlan>({
+  name: { type: String, required: true },
+  price: { type: Number, required: true },
+  miningRate: { type: Number, required: true },
+  dailyEarnings: { type: Number, required: true },
+  monthlyRoi: { type: Number, required: true },
+  contractPeriod: { type: Number, required: true },
+  isActive: { type: Boolean, default: true },
+  description: { type: String, required: true },
+  features: [{ type: String }],
+}, {
+  timestamps: true
 });
 
-// User transactions/payments
-export const transactions = pgTable("transactions", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").references(() => users.id).notNull(),
-  planId: varchar("plan_id").references(() => miningPlans.id).notNull(),
-  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  currency: varchar("currency").notNull(), // BTC, ETH, USDT, etc.
-  cryptoAmount: decimal("crypto_amount", { precision: 20, scale: 8 }).notNull(),
-  walletAddress: text("wallet_address").notNull(),
-  transactionHash: text("transaction_hash"),
-  status: varchar("status").notNull().default("pending"), // pending, approved, rejected
-  approvedBy: varchar("approved_by").references(() => users.id),
-  approvedAt: timestamp("approved_at"),
-  rejectionReason: text("rejection_reason"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+// Transaction Schema
+export interface ITransaction extends Document {
+  _id: string;
+  userId: string;
+  planId: string;
+  amount: number;
+  currency: string;
+  cryptoAmount: number;
+  walletAddress: string;
+  transactionHash?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  approvedBy?: string;
+  approvedAt?: Date;
+  rejectionReason?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const transactionSchema = new Schema<ITransaction>({
+  userId: { type: String, required: true, ref: 'User' },
+  planId: { type: String, required: true, ref: 'MiningPlan' },
+  amount: { type: Number, required: true },
+  currency: { type: String, required: true },
+  cryptoAmount: { type: Number, required: true },
+  walletAddress: { type: String, required: true },
+  transactionHash: { type: String },
+  status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+  approvedBy: { type: String, ref: 'User' },
+  approvedAt: { type: Date },
+  rejectionReason: { type: String },
+}, {
+  timestamps: true
 });
 
-// User mining contracts
-export const miningContracts = pgTable("mining_contracts", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").references(() => users.id).notNull(),
-  planId: varchar("plan_id").references(() => miningPlans.id).notNull(),
-  transactionId: varchar("transaction_id").references(() => transactions.id).notNull(),
-  startDate: timestamp("start_date").notNull(),
-  endDate: timestamp("end_date").notNull(),
-  isActive: boolean("is_active").default(true),
-  totalEarnings: decimal("total_earnings", { precision: 20, scale: 8 }).default("0"),
-  lastPayoutAt: timestamp("last_payout_at"),
-  createdAt: timestamp("created_at").defaultNow(),
+// Mining Contract Schema
+export interface IMiningContract extends Document {
+  _id: string;
+  userId: string;
+  planId: string;
+  transactionId: string;
+  startDate: Date;
+  endDate: Date;
+  isActive: boolean;
+  totalEarnings: number;
+  lastPayoutAt?: Date;
+  createdAt: Date;
+}
+
+const miningContractSchema = new Schema<IMiningContract>({
+  userId: { type: String, required: true, ref: 'User' },
+  planId: { type: String, required: true, ref: 'MiningPlan' },
+  transactionId: { type: String, required: true, ref: 'Transaction' },
+  startDate: { type: Date, required: true },
+  endDate: { type: Date, required: true },
+  isActive: { type: Boolean, default: true },
+  totalEarnings: { type: Number, default: 0 },
+  lastPayoutAt: { type: Date },
+}, {
+  timestamps: true
 });
 
-// Daily mining earnings
-export const miningEarnings = pgTable("mining_earnings", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  contractId: varchar("contract_id").references(() => miningContracts.id).notNull(),
-  userId: varchar("user_id").references(() => users.id).notNull(),
-  date: timestamp("date").notNull(),
-  amount: decimal("amount", { precision: 20, scale: 8 }).notNull(), // BTC
-  usdValue: decimal("usd_value", { precision: 10, scale: 2 }).notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
+// Mining Earnings Schema
+export interface IMiningEarning extends Document {
+  _id: string;
+  contractId: string;
+  userId: string;
+  date: Date;
+  amount: number; // BTC
+  usdValue: number;
+  createdAt: Date;
+}
+
+const miningEarningSchema = new Schema<IMiningEarning>({
+  contractId: { type: String, required: true, ref: 'MiningContract' },
+  userId: { type: String, required: true, ref: 'User' },
+  date: { type: Date, required: true },
+  amount: { type: Number, required: true },
+  usdValue: { type: Number, required: true },
+}, {
+  timestamps: true
 });
 
-// Withdrawal requests
-export const withdrawals = pgTable("withdrawals", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").references(() => users.id).notNull(),
-  currency: varchar("currency").notNull(),
-  amount: decimal("amount", { precision: 20, scale: 8 }).notNull(),
-  walletAddress: text("wallet_address").notNull(),
-  status: varchar("status").notNull().default("pending"), // pending, processing, completed, rejected
-  transactionHash: text("transaction_hash"),
-  networkFee: decimal("network_fee", { precision: 20, scale: 8 }),
-  processedAt: timestamp("processed_at"),
-  createdAt: timestamp("created_at").defaultNow(),
+// Withdrawal Schema
+export interface IWithdrawal extends Document {
+  _id: string;
+  userId: string;
+  currency: string;
+  amount: number;
+  walletAddress: string;
+  status: 'pending' | 'processing' | 'completed' | 'rejected';
+  transactionHash?: string;
+  networkFee?: number;
+  processedAt?: Date;
+  createdAt: Date;
+}
+
+const withdrawalSchema = new Schema<IWithdrawal>({
+  userId: { type: String, required: true, ref: 'User' },
+  currency: { type: String, required: true },
+  amount: { type: Number, required: true },
+  walletAddress: { type: String, required: true },
+  status: { type: String, enum: ['pending', 'processing', 'completed', 'rejected'], default: 'pending' },
+  transactionHash: { type: String },
+  networkFee: { type: Number },
+  processedAt: { type: Date },
+}, {
+  timestamps: true
 });
 
-// Cryptocurrency prices cache
-export const cryptoPrices = pgTable("crypto_prices", {
-  id: varchar("id").primaryKey(),
-  symbol: varchar("symbol").notNull(),
-  name: varchar("name").notNull(),
-  price: decimal("price", { precision: 20, scale: 8 }).notNull(),
-  change1h: decimal("change_1h", { precision: 10, scale: 2 }),
-  change24h: decimal("change_24h", { precision: 10, scale: 2 }),
-  change7d: decimal("change_7d", { precision: 10, scale: 2 }),
-  marketCap: decimal("market_cap", { precision: 20, scale: 2 }),
-  volume24h: decimal("volume_24h", { precision: 20, scale: 2 }),
-  circulatingSupply: decimal("circulating_supply", { precision: 20, scale: 2 }),
-  logoUrl: text("logo_url"),
-  updatedAt: timestamp("updated_at").defaultNow(),
+// Crypto Price Schema
+export interface ICryptoPrice extends Document {
+  _id: string;
+  symbol: string;
+  name: string;
+  price: number;
+  change1h?: number;
+  change24h?: number;
+  change7d?: number;
+  marketCap?: number;
+  volume24h?: number;
+  circulatingSupply?: number;
+  logoUrl?: string;
+  updatedAt: Date;
+}
+
+const cryptoPriceSchema = new Schema<ICryptoPrice>({
+  symbol: { type: String, required: true, unique: true },
+  name: { type: String, required: true },
+  price: { type: Number, required: true },
+  change1h: { type: Number },
+  change24h: { type: Number },
+  change7d: { type: Number },
+  marketCap: { type: Number },
+  volume24h: { type: Number },
+  circulatingSupply: { type: Number },
+  logoUrl: { type: String },
+}, {
+  timestamps: true
 });
 
-// Relations
-export const usersRelations = relations(users, ({ many }) => ({
-  transactions: many(transactions),
-  miningContracts: many(miningContracts),
-  miningEarnings: many(miningEarnings),
-  withdrawals: many(withdrawals),
-}));
+// Create models
+export const User = mongoose.models.User || mongoose.model<IUser>('User', userSchema);
+export const MiningPlan = mongoose.models.MiningPlan || mongoose.model<IMiningPlan>('MiningPlan', miningPlanSchema);
+export const Transaction = mongoose.models.Transaction || mongoose.model<ITransaction>('Transaction', transactionSchema);
+export const MiningContract = mongoose.models.MiningContract || mongoose.model<IMiningContract>('MiningContract', miningContractSchema);
+export const MiningEarning = mongoose.models.MiningEarning || mongoose.model<IMiningEarning>('MiningEarning', miningEarningSchema);
+export const Withdrawal = mongoose.models.Withdrawal || mongoose.model<IWithdrawal>('Withdrawal', withdrawalSchema);
+export const CryptoPrice = mongoose.models.CryptoPrice || mongoose.model<ICryptoPrice>('CryptoPrice', cryptoPriceSchema);
 
-export const miningPlansRelations = relations(miningPlans, ({ many }) => ({
-  transactions: many(transactions),
-  miningContracts: many(miningContracts),
-}));
-
-export const transactionsRelations = relations(transactions, ({ one, many }) => ({
-  user: one(users, { fields: [transactions.userId], references: [users.id] }),
-  plan: one(miningPlans, { fields: [transactions.planId], references: [miningPlans.id] }),
-  approver: one(users, { fields: [transactions.approvedBy], references: [users.id] }),
-  miningContract: many(miningContracts),
-}));
-
-export const miningContractsRelations = relations(miningContracts, ({ one, many }) => ({
-  user: one(users, { fields: [miningContracts.userId], references: [users.id] }),
-  plan: one(miningPlans, { fields: [miningContracts.planId], references: [miningPlans.id] }),
-  transaction: one(transactions, { fields: [miningContracts.transactionId], references: [transactions.id] }),
-  earnings: many(miningEarnings),
-}));
-
-export const miningEarningsRelations = relations(miningEarnings, ({ one }) => ({
-  contract: one(miningContracts, { fields: [miningEarnings.contractId], references: [miningContracts.id] }),
-  user: one(users, { fields: [miningEarnings.userId], references: [users.id] }),
-}));
-
-export const withdrawalsRelations = relations(withdrawals, ({ one }) => ({
-  user: one(users, { fields: [withdrawals.userId], references: [users.id] }),
-}));
-
-// Insert schemas
-export const insertUserSchema = createInsertSchema(users).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-  isEmailVerified: true,
-});
-
+// Validation schemas
 export const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
@@ -181,37 +220,50 @@ export const registerSchema = z.object({
   lastName: z.string().min(1),
 });
 
-export const insertMiningPlanSchema = createInsertSchema(miningPlans).omit({
-  id: true,
-  createdAt: true,
+export const createTransactionSchema = z.object({
+  planId: z.string(),
+  currency: z.string(),
+  cryptoAmount: z.number().positive(),
+  walletAddress: z.string().min(1),
+  transactionHash: z.string().optional(),
 });
 
-export const insertTransactionSchema = createInsertSchema(transactions).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-  approvedBy: true,
-  approvedAt: true,
-});
-
-export const insertWithdrawalSchema = createInsertSchema(withdrawals).omit({
-  id: true,
-  createdAt: true,
-  processedAt: true,
-  transactionHash: true,
-  networkFee: true,
+export const createWithdrawalSchema = z.object({
+  currency: z.string(),
+  amount: z.number().positive(),
+  walletAddress: z.string().min(1),
 });
 
 // Types
-export type UpsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
-export type MiningPlan = typeof miningPlans.$inferSelect;
-export type Transaction = typeof transactions.$inferSelect;
-export type MiningContract = typeof miningContracts.$inferSelect;
-export type MiningEarning = typeof miningEarnings.$inferSelect;
-export type Withdrawal = typeof withdrawals.$inferSelect;
-export type CryptoPrice = typeof cryptoPrices.$inferSelect;
-export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
-export type InsertWithdrawal = z.infer<typeof insertWithdrawalSchema>;
+export type User = IUser;
+export type MiningPlan = IMiningPlan;
+export type Transaction = ITransaction;
+export type MiningContract = IMiningContract;
+export type MiningEarning = IMiningEarning;
+export type Withdrawal = IWithdrawal;
+export type CryptoPrice = ICryptoPrice;
+
 export type LoginData = z.infer<typeof loginSchema>;
 export type RegisterData = z.infer<typeof registerSchema>;
+export type CreateTransactionData = z.infer<typeof createTransactionSchema>;
+export type CreateWithdrawalData = z.infer<typeof createWithdrawalSchema>;
+
+// Crypto payment addresses
+export const PAYMENT_ADDRESSES = {
+  BNB: '0x09f616C4118870CcB2BE1aCE1EAc090bF443833B',
+  BTC: 'bc1qfxl02mlrwfnnamr6qqhcgcutyth87du67u0nm0',
+  USDT: 'TDsBManQwvT698thSMKmhjYqKTupVxWFwK',
+  SOL: '9ENQmbQFA1mKWYZWaL1qpH1ACLioLz55eANsigHGckXt',
+  ETH: '0x09f616C4118870CcB2BE1aCE1EAc090bF443833B',
+};
+
+// Supported withdrawal currencies
+export const WITHDRAWAL_CURRENCIES = [
+  { symbol: 'BTC', name: 'Bitcoin', icon: '₿' },
+  { symbol: 'ETH', name: 'Ethereum', icon: 'Ξ' },
+  { symbol: 'USDT', name: 'Tether USDT', icon: '₮' },
+  { symbol: 'BNB', name: 'Binance Coin', icon: 'BNB' },
+  { symbol: 'SOL', name: 'Solana', icon: 'SOL' },
+  { symbol: 'ADA', name: 'Cardano', icon: 'ADA' },
+  { symbol: 'DOT', name: 'Polkadot', icon: 'DOT' },
+];

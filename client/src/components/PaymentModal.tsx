@@ -124,10 +124,11 @@ export default function PaymentModal({ plan, isOpen, onClose }: PaymentModalProp
     const cryptoAmount = calculateCryptoAmount(selectedCrypto);
 
     createTransactionMutation.mutate({
-      planId: plan.id,
+      planId: plan._id || plan.id,
       amount: plan.price,
       currency: selectedCrypto.symbol,
-      cryptoAmount,
+      cryptoAmount: parseFloat(cryptoAmount),
+      walletAddress: selectedCrypto.address,
       transactionHash: transactionHash.trim(),
     });
   };

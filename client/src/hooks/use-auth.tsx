@@ -4,7 +4,30 @@ import {
   useMutation,
   UseMutationResult,
 } from "@tanstack/react-query";
-import { User, LoginData, RegisterData } from "@shared/schema";
+// Client-side user interface
+interface User {
+  _id: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  profileImageUrl?: string;
+  isAdmin: boolean;
+  isEmailVerified: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface LoginData {
+  email: string;
+  password: string;
+}
+
+interface RegisterData {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+}
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 

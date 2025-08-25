@@ -2,30 +2,19 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, isAdmin } from "./auth";
-import { insertTransactionSchema, insertWithdrawalSchema, type User } from "@shared/schema";
+import { createTransactionSchema, createWithdrawalSchema, PAYMENT_ADDRESSES } from "@shared/schema";
 import { z } from "zod";
-
-// Crypto wallet addresses for payments
-const CRYPTO_ADDRESSES = {
-  BNB: "0x09f616C4118870CcB2BE1aCE1EAc090bF443833B",
-  BTC: "bc1qfxl02mlrwfnnamr6qqhcgcutyth87du67u0nm0",
-  USDT: "TDsBManQwvT698thSMKmhjYqKTupVxWFwK",
-  SOL: "9ENQmbQFA1mKWYZWaL1qpH1ACLioLz55eANsigHGckXt"
-};
+import axios from 'axios';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   setupAuth(app);
 
-  // Initialize mining plans if they don't exist
+  // Initialize mining plans and start services
   await initializeMiningPlans();
-  
-  // Start price update service
   startPriceUpdateService();
 
-  // Note: Auth routes are handled in auth.ts
-
-  // Crypto prices
+  // Crypto prices endpoint
   app.get('/api/crypto-prices', async (req, res) => {
     try {
       const prices = await storage.getCryptoPrices();
@@ -36,7 +25,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Mining plans
+  // Mining plans endpoint
   app.get('/api/mining-plans', async (req, res) => {
     try {
       const plans = await storage.getMiningPlans();
@@ -47,10 +36,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get payment addresses
+  app.get('/api/payment-addresses', (req, res) => {
+    res.json(PAYMENT_ADDRESSES);
+  });
+
   // User transactions
   app.get('/api/transactions', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user._id.toString();
       const transactions = await storage.getUserTransactions(userId);
       res.json(transactions);
     } catch (error) {
@@ -62,14 +56,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create transaction
   app.post('/api/transactions', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
-      const transactionData = insertTransactionSchema.parse({
-        ...req.body,
+      const userId = req.user._id.toString();
+      const transactionData = createTransactionSchema.parse(req.body);
+
+      // Get the mining plan to calculate USD amount
+      const plan = await storage.getMiningPlan(transactionData.planId);
+      if (!plan) {
+        return res.status(404).json({ message: "Mining plan not found" });
+      }
+
+      const transaction = await storage.createTransaction({
+        ...transactionData,
         userId,
-        walletAddress: CRYPTO_ADDRESSES[req.body.currency as keyof typeof CRYPTO_ADDRESSES]
+        amount: plan.price, // USD amount from plan
       });
 
-      const transaction = await storage.createTransaction(transactionData);
       res.json(transaction);
     } catch (error) {
       console.error("Error creating transaction:", error);
@@ -84,7 +85,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User mining contracts
   app.get('/api/mining-contracts', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user._id.toString();
       const contracts = await storage.getUserMiningContracts(userId);
       res.json(contracts);
     } catch (error) {
@@ -96,7 +97,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User earnings
   app.get('/api/earnings', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user._id.toString();
       const [earnings, totals] = await Promise.all([
         storage.getUserEarnings(userId),
         storage.getUserTotalEarnings(userId)
@@ -108,10 +109,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Withdrawals
+  // User withdrawals
   app.get('/api/withdrawals', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user._id.toString();
       const withdrawals = await storage.getUserWithdrawals(userId);
       res.json(withdrawals);
     } catch (error) {
@@ -120,24 +121,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create withdrawal
   app.post('/api/withdrawals', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
-      const withdrawalData = insertWithdrawalSchema.parse({
-        ...req.body,
-        userId
-      });
+      const userId = req.user._id.toString();
+      const withdrawalData = createWithdrawalSchema.parse(req.body);
 
       // Check if user has sufficient balance
       const totals = await storage.getUserTotalEarnings(userId);
-      const totalBtc = parseFloat(totals.totalBtc);
-      const requestedAmount = parseFloat(withdrawalData.amount);
+      const totalBtc = totals.totalBtc;
+      const requestedAmount = withdrawalData.amount;
 
       if (requestedAmount > totalBtc) {
         return res.status(400).json({ message: "Insufficient balance" });
       }
 
-      const withdrawal = await storage.createWithdrawal(withdrawalData);
+      const withdrawal = await storage.createWithdrawal({
+        ...withdrawalData,
+        userId
+      });
+
       res.json(withdrawal);
     } catch (error) {
       console.error("Error creating withdrawal:", error);
@@ -152,8 +155,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin routes
   app.get('/api/admin/transactions', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
-      if (!user?.isAdmin) {
+      if (!req.user.isAdmin) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -165,16 +167,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/admin/all-transactions', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!req.user.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const transactions = await storage.getAllTransactions();
+      res.json(transactions);
+    } catch (error) {
+      console.error("Error fetching all transactions:", error);
+      res.status(500).json({ message: "Failed to fetch all transactions" });
+    }
+  });
+
   app.post('/api/admin/transactions/:id/approve', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
-      if (!user?.isAdmin) {
+      if (!req.user.isAdmin) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
       const { id } = req.params;
-      const transaction = await storage.approveTransaction(id, req.user.claims.sub);
+      const transaction = await storage.approveTransaction(id, req.user._id.toString());
       
+      if (!transaction) {
+        return res.status(404).json({ message: "Transaction not found" });
+      }
+
       // Create mining contract for approved transaction
       if (transaction.status === "approved") {
         const plan = await storage.getMiningPlan(transaction.planId);
@@ -186,12 +205,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await storage.createMiningContract({
             userId: transaction.userId,
             planId: transaction.planId,
-            transactionId: transaction.id,
+            transactionId: transaction._id.toString(),
             startDate,
             endDate,
             isActive: true,
-            totalEarnings: "0",
+            totalEarnings: 0,
           });
+
+          // Start generating daily earnings for this contract
+          generateDailyEarnings(transaction.userId, plan);
         }
       }
 
@@ -204,15 +226,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/admin/transactions/:id/reject', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
-      if (!user?.isAdmin) {
+      if (!req.user.isAdmin) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
       const { id } = req.params;
       const { reason } = req.body;
-      const transaction = await storage.rejectTransaction(id, req.user.claims.sub, reason);
+      const transaction = await storage.rejectTransaction(id, req.user._id.toString(), reason);
       
+      if (!transaction) {
+        return res.status(404).json({ message: "Transaction not found" });
+      }
+
       res.json(transaction);
     } catch (error) {
       console.error("Error rejecting transaction:", error);
@@ -220,91 +245,192 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin withdrawal management
+  app.get('/api/admin/withdrawals', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!req.user.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const withdrawals = await storage.getPendingWithdrawals();
+      res.json(withdrawals);
+    } catch (error) {
+      console.error("Error fetching pending withdrawals:", error);
+      res.status(500).json({ message: "Failed to fetch withdrawals" });
+    }
+  });
+
+  app.post('/api/admin/withdrawals/:id/process', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!req.user.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      const { transactionHash, networkFee } = req.body;
+
+      const withdrawal = await storage.updateWithdrawal(id, {
+        status: 'completed',
+        transactionHash,
+        networkFee: networkFee || 0,
+        processedAt: new Date(),
+      });
+
+      res.json(withdrawal);
+    } catch (error) {
+      console.error("Error processing withdrawal:", error);
+      res.status(500).json({ message: "Failed to process withdrawal" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
 
+// Initialize default mining plans
 async function initializeMiningPlans() {
   try {
     const existingPlans = await storage.getMiningPlans();
     if (existingPlans.length === 0) {
-      // Create default mining plans
       const plans = [
         {
-          name: "Starter",
-          price: "10.00",
-          miningRate: "1.00",
-          dailyEarnings: "0.00000500",
-          monthlyRoi: "15.00",
-          contractPeriod: 12,
+          name: "Starter Plan",
+          price: 10,
+          miningRate: 1.0, // MH/s
+          dailyEarnings: 0.00000500, // BTC
+          monthlyRoi: 15.0, // percentage
+          contractPeriod: 12, // months
+          description: "Perfect for beginners wanting to start their mining journey",
+          features: [
+            "1 MH/s mining power",
+            "Daily BTC earnings",
+            "12-month contract",
+            "15% monthly ROI",
+            "Basic support"
+          ],
           isActive: true,
         },
         {
-          name: "Pro",
-          price: "50.00",
-          miningRate: "5.00",
-          dailyEarnings: "0.00002800",
-          monthlyRoi: "18.00",
+          name: "Pro Plan",
+          price: 50,
+          miningRate: 5.0,
+          dailyEarnings: 0.00002800,
+          monthlyRoi: 18.0,
           contractPeriod: 12,
+          description: "For serious miners looking for better returns",
+          features: [
+            "5 MH/s mining power",
+            "Higher daily earnings",
+            "12-month contract",
+            "18% monthly ROI",
+            "Priority support"
+          ],
           isActive: true,
         },
         {
-          name: "Enterprise",
-          price: "200.00",
-          miningRate: "20.00",
-          dailyEarnings: "0.00012500",
-          monthlyRoi: "22.00",
+          name: "Enterprise Plan",
+          price: 200,
+          miningRate: 20.0,
+          dailyEarnings: 0.00012500,
+          monthlyRoi: 22.0,
           contractPeriod: 12,
+          description: "Maximum mining power for professional investors",
+          features: [
+            "20 MH/s mining power",
+            "Maximum daily earnings",
+            "12-month contract",
+            "22% monthly ROI",
+            "VIP support",
+            "Custom analytics"
+          ],
           isActive: true,
         },
       ];
 
-      // Note: This would need to be done via direct DB insertion in a real scenario
-      console.log("Mining plans would be initialized here");
+      for (const plan of plans) {
+        await storage.createMiningPlan(plan);
+      }
+      console.log("✓ Mining plans initialized successfully");
     }
   } catch (error) {
     console.error("Error initializing mining plans:", error);
   }
 }
 
+// Fetch cryptocurrency prices from CoinMarketCap
 async function fetchCryptoPrices() {
   try {
-    // Use CoinMarketCap API
-    const response = await fetch(
-      'https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest?start=1&limit=10&convert=USD',
-      {
-        headers: {
-          'X-CMC_PRO_API_KEY': process.env.COINMARKETCAP_API_KEY || 'demo_key',
-        },
-      }
+    // Free CoinMarketCap API alternative - using CoinGecko
+    const response = await axios.get(
+      'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1&sparkline=false&price_change_percentage=1h%2C24h%2C7d'
     );
 
-    if (response.ok) {
-      const data = await response.json();
-      for (const crypto of data.data) {
+    if (response.data) {
+      for (const crypto of response.data) {
         await storage.upsertCryptoPrice({
-          id: crypto.id.toString(),
-          symbol: crypto.symbol,
+          symbol: crypto.symbol.toUpperCase(),
           name: crypto.name,
-          price: crypto.quote.USD.price.toString(),
-          change1h: crypto.quote.USD.percent_change_1h?.toString(),
-          change24h: crypto.quote.USD.percent_change_24h?.toString(),
-          change7d: crypto.quote.USD.percent_change_7d?.toString(),
-          marketCap: crypto.quote.USD.market_cap?.toString(),
-          volume24h: crypto.quote.USD.volume_24h?.toString(),
-          circulatingSupply: crypto.circulating_supply?.toString(),
-          logoUrl: `https://s2.coinmarketcap.com/static/img/coins/64x64/${crypto.id}.png`,
+          price: crypto.current_price,
+          change1h: crypto.price_change_percentage_1h_in_currency,
+          change24h: crypto.price_change_percentage_24h,
+          change7d: crypto.price_change_percentage_7d_in_currency,
+          marketCap: crypto.market_cap,
+          volume24h: crypto.total_volume,
+          circulatingSupply: crypto.circulating_supply,
+          logoUrl: crypto.image,
         });
       }
+      console.log("✓ Crypto prices updated successfully");
     }
   } catch (error) {
     console.error("Error fetching crypto prices:", error);
+    
+    // Fallback: Insert some default crypto prices if API fails
+    try {
+      const defaultPrices = [
+        { symbol: 'BTC', name: 'Bitcoin', price: 45000, change24h: 2.5 },
+        { symbol: 'ETH', name: 'Ethereum', price: 3000, change24h: 1.8 },
+        { symbol: 'USDT', name: 'Tether', price: 1, change24h: 0.1 },
+        { symbol: 'BNB', name: 'Binance Coin', price: 300, change24h: 3.2 },
+        { symbol: 'SOL', name: 'Solana', price: 100, change24h: 4.1 },
+      ];
+
+      for (const crypto of defaultPrices) {
+        await storage.upsertCryptoPrice(crypto);
+      }
+    } catch (fallbackError) {
+      console.error("Error setting fallback prices:", fallbackError);
+    }
   }
 }
 
+// Generate daily earnings for active contracts
+async function generateDailyEarnings(userId: string, plan: any) {
+  try {
+    // This would typically run as a scheduled job
+    // For demo purposes, we'll just create one earning entry
+    const btcPrice = await storage.getCryptoPrice('BTC');
+    const btcPriceUsd = btcPrice?.price || 45000;
+    
+    await storage.createMiningEarning({
+      contractId: 'contract_id_placeholder', // This would be the actual contract ID
+      userId,
+      date: new Date(),
+      amount: plan.dailyEarnings,
+      usdValue: plan.dailyEarnings * btcPriceUsd,
+    });
+  } catch (error) {
+    console.error("Error generating daily earnings:", error);
+  }
+}
+
+// Start the price update service
 function startPriceUpdateService() {
-  // Update prices every 30 seconds
-  setInterval(fetchCryptoPrices, 30000);
+  // Update prices every 5 minutes
+  setInterval(fetchCryptoPrices, 5 * 60 * 1000);
+  
   // Initial fetch
   fetchCryptoPrices();
+  
+  console.log("✓ Price update service started");
 }

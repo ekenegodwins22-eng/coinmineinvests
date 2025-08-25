@@ -16,7 +16,7 @@ interface CryptoPrice {
 }
 
 export default function PriceTable() {
-  const { data: prices = [], isLoading } = useQuery({
+  const { data: prices = [], isLoading } = useQuery<CryptoPrice[]>({
     queryKey: ["/api/crypto-prices"],
     refetchInterval: 30000, // Refetch every 30 seconds
   });

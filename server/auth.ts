@@ -1,211 +1,286 @@
-import passport from "passport";
-import { Strategy as LocalStrategy } from "passport-local";
-import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import { Express } from "express";
-import session from "express-session";
-import { scrypt, randomBytes, timingSafeEqual } from "crypto";
-import { promisify } from "util";
-import { storage } from "./storage";
-import { User, loginSchema, registerSchema } from "@shared/schema";
-import connectPg from "connect-pg-simple";
-import { z } from "zod";
+import bcrypt from 'bcryptjs';
+import { storage } from './storage';
+import { OAuth2Client } from 'google-auth-library';
+import { loginSchema, registerSchema, type LoginData, type RegisterData } from '@shared/schema';
+import type { Express, Request, Response, NextFunction } from 'express';
+import session from 'express-session';
+import MongoStore from 'connect-mongo';
 
-declare global {
-  namespace Express {
-    interface User extends User {}
-  }
-}
-
-const scryptAsync = promisify(scrypt);
-
-async function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
-  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${buf.toString("hex")}.${salt}`;
-}
-
-async function comparePasswords(supplied: string, stored: string) {
-  const [hashed, salt] = stored.split(".");
-  const hashedBuf = Buffer.from(hashed, "hex");
-  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-  return timingSafeEqual(hashedBuf, suppliedBuf);
-}
-
-export function setupAuth(app: Express) {
-  const sessionSettings: session.SessionOptions = {
-    secret: process.env.SESSION_SECRET || "your-secret-key-here",
+// Session configuration
+export function setupSession(app: Express) {
+  app.use(session({
+    secret: process.env.SESSION_SECRET || 'your-secret-key-change-this-in-production',
     resave: false,
     saveUninitialized: false,
-    store: new (connectPg(session))({
-      conString: process.env.DATABASE_URL,
-      createTableIfMissing: false, // Table already exists from previous setup
+    store: MongoStore.create({
+      mongoUrl: "mongodb+srv://clonedatabase:clonedatabase@clonedatabase.hfmunxm.mongodb.net/?retryWrites=true&w=majority&appName=CLONEDATABASE",
+      touchAfter: 24 * 3600 // lazy session update
     }),
     cookie: {
+      secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
-    },
-  };
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    }
+  }));
+}
 
-  app.set("trust proxy", 1);
-  app.use(session(sessionSettings));
-  app.use(passport.initialize());
-  app.use(passport.session());
-
-  // Local Strategy (Email/Password)
-  passport.use(
-    new LocalStrategy(
-      { usernameField: "email" },
-      async (email, password, done) => {
-        try {
-          const user = await storage.getUserByEmail(email);
-          if (!user || !user.password || !(await comparePasswords(password, user.password))) {
-            return done(null, false, { message: "Invalid email or password" });
-          }
-          return done(null, user);
-        } catch (error) {
-          return done(error);
-        }
-      }
-    )
-  );
-
-  // Google Strategy
-  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-    passport.use(
-      new GoogleStrategy(
-        {
-          clientID: process.env.GOOGLE_CLIENT_ID,
-          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-          callbackURL: "/api/auth/google/callback",
-        },
-        async (accessToken, refreshToken, profile, done) => {
-          try {
-            let user = await storage.getUserByGoogleId(profile.id);
-            
-            if (!user) {
-              // Create new user from Google profile
-              user = await storage.createUser({
-                email: profile.emails?.[0]?.value || "",
-                googleId: profile.id,
-                firstName: profile.name?.givenName || "",
-                lastName: profile.name?.familyName || "",
-                profileImageUrl: profile.photos?.[0]?.value,
-                isEmailVerified: true,
-              });
-            }
-            
-            return done(null, user);
-          } catch (error) {
-            return done(error);
-          }
-        }
-      )
-    );
+// Authentication middleware
+export async function isAuthenticated(req: any, res: Response, next: NextFunction) {
+  if (!req.session?.userId) {
+    return res.status(401).json({ message: 'Not authenticated' });
   }
 
-  passport.serializeUser((user, done) => done(null, user.id));
-  passport.deserializeUser(async (id: string, done) => {
+  try {
+    const user = await storage.getUser(req.session.userId);
+    if (!user) {
+      req.session.destroy((err: any) => {
+        if (err) console.error('Session destroy error:', err);
+      });
+      return res.status(401).json({ message: 'User not found' });
+    }
+
+    req.user = user;
+    next();
+  } catch (error) {
+    console.error('Auth middleware error:', error);
+    res.status(500).json({ message: 'Authentication error' });
+  }
+}
+
+// Admin middleware
+export async function isAdmin(req: any, res: Response, next: NextFunction) {
+  if (!req.user?.isAdmin) {
+    return res.status(403).json({ message: 'Admin access required' });
+  }
+  next();
+}
+
+// Google OAuth client
+const googleClient = new OAuth2Client(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  process.env.GOOGLE_REDIRECT_URI || 'http://localhost:5000/api/auth/google/callback'
+);
+
+export function setupAuth(app: Express) {
+  setupSession(app);
+
+  // Get current user
+  app.get('/api/auth/user', async (req: any, res) => {
+    if (!req.session?.userId) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+
     try {
-      const user = await storage.getUser(id);
-      done(null, user);
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        req.session.destroy((err: any) => {
+          if (err) console.error('Session destroy error:', err);
+        });
+        return res.status(401).json({ message: 'User not found' });
+      }
+
+      // Don't send password
+      const { password, ...userWithoutPassword } = user.toObject();
+      res.json(userWithoutPassword);
     } catch (error) {
-      done(error);
+      console.error('Get user error:', error);
+      res.status(500).json({ message: 'Failed to get user' });
     }
   });
 
-  // Registration route
-  app.post("/api/auth/register", async (req, res) => {
+  // Register with email/password
+  app.post('/api/auth/register', async (req, res) => {
     try {
-      const { email, password, firstName, lastName } = registerSchema.parse(req.body);
+      const userData = registerSchema.parse(req.body);
       
-      const existingUser = await storage.getUserByEmail(email);
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(userData.email);
       if (existingUser) {
-        return res.status(400).json({ message: "User already exists" });
+        return res.status(400).json({ message: 'User already exists with this email' });
       }
 
-      const hashedPassword = await hashPassword(password);
+      // Hash password
+      const hashedPassword = await bcrypt.hash(userData.password, 12);
+
+      // Create user
       const user = await storage.createUser({
-        email,
+        email: userData.email,
         password: hashedPassword,
-        firstName,
-        lastName,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
         isEmailVerified: false,
+        isAdmin: false,
       });
 
-      req.login(user, (err) => {
-        if (err) return res.status(500).json({ message: "Login failed" });
-        res.status(201).json(user);
-      });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid input", errors: error.errors });
+      // Create session
+      (req as any).session.userId = user._id.toString();
+
+      // Don't send password
+      const { password, ...userWithoutPassword } = user.toObject();
+      res.status(201).json({ user: userWithoutPassword });
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      if (error.name === 'ZodError') {
+        res.status(400).json({ message: 'Invalid registration data', errors: error.errors });
+      } else {
+        res.status(500).json({ message: 'Registration failed' });
       }
-      console.error("Registration error:", error);
-      res.status(500).json({ message: "Registration failed" });
     }
   });
 
-  // Login route
-  app.post("/api/auth/login", (req, res, next) => {
+  // Login with email/password
+  app.post('/api/auth/login', async (req, res) => {
     try {
-      loginSchema.parse(req.body);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid input", errors: error.errors });
+      const loginData = loginSchema.parse(req.body);
+      
+      // Find user
+      const user = await storage.getUserByEmail(loginData.email);
+      if (!user || !user.password) {
+        return res.status(401).json({ message: 'Invalid email or password' });
+      }
+
+      // Check password
+      const isValidPassword = await bcrypt.compare(loginData.password, user.password);
+      if (!isValidPassword) {
+        return res.status(401).json({ message: 'Invalid email or password' });
+      }
+
+      // Create session
+      (req as any).session.userId = user._id.toString();
+
+      // Don't send password
+      const { password, ...userWithoutPassword } = user.toObject();
+      res.json({ user: userWithoutPassword });
+    } catch (error: any) {
+      console.error('Login error:', error);
+      if (error.name === 'ZodError') {
+        res.status(400).json({ message: 'Invalid login data', errors: error.errors });
+      } else {
+        res.status(500).json({ message: 'Login failed' });
       }
     }
-
-    passport.authenticate("local", (err: any, user: any, info: any) => {
-      if (err) return next(err);
-      if (!user) return res.status(401).json({ message: info?.message || "Login failed" });
-      
-      req.login(user, (err) => {
-        if (err) return next(err);
-        res.json(user);
-      });
-    })(req, res, next);
   });
 
-  // Google OAuth routes
-  app.get("/api/auth/google", 
-    passport.authenticate("google", { scope: ["profile", "email"] })
-  );
+  // Google OAuth URL
+  app.get('/api/auth/google', (req, res) => {
+    const authUrl = googleClient.generateAuthUrl({
+      access_type: 'offline',
+      scope: ['email', 'profile'],
+      state: req.query.returnTo as string || '/'
+    });
+    res.json({ url: authUrl });
+  });
 
-  app.get("/api/auth/google/callback",
-    passport.authenticate("google", { failureRedirect: "/login" }),
-    (req, res) => {
-      res.redirect("/");
+  // Google OAuth callback
+  app.get('/api/auth/google/callback', async (req, res) => {
+    try {
+      const { code, state } = req.query;
+      
+      if (!code) {
+        return res.redirect('/?error=no_code');
+      }
+
+      // Get tokens from Google
+      const { tokens } = await googleClient.getToken(code as string);
+      googleClient.setCredentials(tokens);
+
+      // Get user profile
+      const ticket = await googleClient.verifyIdToken({
+        idToken: tokens.id_token!,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+
+      const profile = ticket.getPayload();
+      if (!profile) {
+        return res.redirect('/?error=no_profile');
+      }
+
+      // Check if user exists
+      let user = await storage.getUserByGoogleId(profile.sub);
+      
+      if (!user) {
+        // Check if user exists with same email
+        const existingUser = await storage.getUserByEmail(profile.email!);
+        if (existingUser) {
+          // Link Google account to existing user
+          user = await storage.updateUser(existingUser._id.toString(), {
+            googleId: profile.sub
+          });
+        } else {
+          // Create new user
+          user = await storage.createUser({
+            email: profile.email!,
+            firstName: profile.given_name,
+            lastName: profile.family_name,
+            profileImageUrl: profile.picture,
+            googleId: profile.sub,
+            isEmailVerified: true,
+            isAdmin: false,
+          });
+        }
+      }
+
+      if (!user) {
+        return res.redirect('/?error=auth_failed');
+      }
+
+      // Create session
+      (req as any).session.userId = user._id.toString();
+
+      // Redirect to the original page or home
+      const returnTo = state && typeof state === 'string' ? state : '/';
+      res.redirect(returnTo);
+    } catch (error) {
+      console.error('Google auth callback error:', error);
+      res.redirect('/?error=auth_failed');
     }
-  );
+  });
 
-  // Logout route
-  app.post("/api/auth/logout", (req, res) => {
-    req.logout((err) => {
-      if (err) return res.status(500).json({ message: "Logout failed" });
-      res.json({ message: "Logged out successfully" });
+  // Logout
+  app.post('/api/auth/logout', (req: any, res) => {
+    req.session.destroy((err: any) => {
+      if (err) {
+        console.error('Logout error:', err);
+        return res.status(500).json({ message: 'Logout failed' });
+      }
+      res.clearCookie('connect.sid');
+      res.json({ message: 'Logged out successfully' });
     });
   });
 
-  // Get current user
-  app.get("/api/auth/user", (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Not authenticated" });
+  // Change password
+  app.post('/api/auth/change-password', isAuthenticated, async (req: any, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: 'Current and new passwords are required' });
+      }
+
+      const user = await storage.getUser(req.user._id);
+      if (!user || !user.password) {
+        return res.status(400).json({ message: 'Password change not available for this account' });
+      }
+
+      // Verify current password
+      const isValidPassword = await bcrypt.compare(currentPassword, user.password);
+      if (!isValidPassword) {
+        return res.status(401).json({ message: 'Current password is incorrect' });
+      }
+
+      // Hash new password
+      const hashedNewPassword = await bcrypt.hash(newPassword, 12);
+
+      // Update password
+      await storage.updateUser(user._id.toString(), {
+        password: hashedNewPassword
+      });
+
+      res.json({ message: 'Password changed successfully' });
+    } catch (error) {
+      console.error('Change password error:', error);
+      res.status(500).json({ message: 'Failed to change password' });
     }
-    res.json(req.user);
   });
-}
-
-export function isAuthenticated(req: any, res: any, next: any) {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  res.status(401).json({ message: "Authentication required" });
-}
-
-export function isAdmin(req: any, res: any, next: any) {
-  if (req.isAuthenticated() && req.user?.isAdmin) {
-    return next();
-  }
-  res.status(403).json({ message: "Admin access required" });
 }

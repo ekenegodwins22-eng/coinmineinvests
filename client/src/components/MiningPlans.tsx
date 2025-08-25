@@ -3,7 +3,18 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import PaymentModal from "./PaymentModal";
-import { MiningPlan } from "@shared/schema";
+interface MiningPlan {
+  _id?: string;
+  id?: string;
+  name: string;
+  price: number;
+  miningRate: number;
+  dailyEarnings: number;
+  monthlyRoi: number;
+  contractPeriod: number;
+  description?: string;
+  features?: string[];
+}
 
 export default function MiningPlans() {
   const [selectedPlan, setSelectedPlan] = useState<MiningPlan | null>(null);
@@ -39,7 +50,7 @@ export default function MiningPlans() {
 
           return (
             <div
-              key={plan.id}
+              key={plan._id || plan.id}
               className={`bg-cmc-card rounded-2xl p-8 border ${
                 isPopular
                   ? "border-2 border-cmc-blue relative overflow-hidden"
@@ -62,7 +73,7 @@ export default function MiningPlans() {
                 <div className={`text-4xl font-bold mb-2 ${
                   isEnterprise ? "text-yellow-500" : "text-cmc-blue"
                 }`} data-testid={`text-plan-price-${plan.name.toLowerCase()}`}>
-                  ${plan.price.toString()}
+                  ${plan.price}
                 </div>
                 <div className="text-cmc-gray">/month</div>
               </div>
