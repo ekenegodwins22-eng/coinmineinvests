@@ -8,6 +8,7 @@ import Landing from "@/pages/landing";
 import AuthPage from "@/pages/auth-page";
 import Home from "@/pages/home";
 import Admin from "@/pages/admin";
+import EarningsPage from "@/components/EarningsPage";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 
 function Router() {
@@ -31,6 +32,7 @@ function Router() {
       ) : (
         <>
           <Route path="/" component={Home} />
+          <Route path="/earnings" component={EarningsPage} />
           {user?.isAdmin && <Route path="/admin" component={Admin} />}
         </>
       )}

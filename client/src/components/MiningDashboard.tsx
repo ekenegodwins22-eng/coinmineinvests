@@ -1,8 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Coins, Zap, Clock, TrendingUp, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
+import { Coins, Zap, Clock, TrendingUp, ArrowUpCircle, ArrowDownCircle, BarChart3, Activity } from "lucide-react";
+import { Link } from "wouter";
+import { motion } from "framer-motion";
 
 interface MiningEarning {
   id: number;
@@ -88,6 +91,21 @@ export default function MiningDashboard() {
   const earnings = earningsData?.earnings || [];
   const totals = earningsData?.totals || { totalBtc: 0, totalUsd: 0 };
 
+  // Calculate today's and yesterday's earnings
+  const today = new Date().toDateString();
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toDateString();
+  
+  const todaysEarnings = earnings.filter(earning => 
+    new Date(earning.date).toDateString() === today
+  );
+  
+  const yesterdaysEarnings = earnings.filter(earning => 
+    new Date(earning.date).toDateString() === yesterday
+  );
+
+  const todaysTotalBtc = todaysEarnings.reduce((sum, earning) => sum + Number(earning.amount), 0);
+  const yesterdaysTotalBtc = yesterdaysEarnings.reduce((sum, earning) => sum + Number(earning.amount), 0);
+
   const activeContracts = contracts.filter((contract: MiningContract) => contract.isActive);
   const totalMiningRate = activeContracts.reduce((total, contract) => {
     const miningRate = contract.plan ? Number(contract.plan.miningRate) : 0;
@@ -159,42 +177,117 @@ export default function MiningDashboard() {
       )}
       {/* Stats Cards */}
       <div className="grid lg:grid-cols-5 gap-6">
-        <Card className="bg-cmc-card border-gray-700" data-testid="card-total-earnings">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-lg font-semibold text-white">Total Earnings</CardTitle>
-            <Coins className="text-cmc-green text-xl" />
+        <Card className="bg-cmc-card border-gray-700 relative overflow-hidden" data-testid="card-total-earnings">
+          {/* Mining animation background */}
+          <motion.div 
+            className="absolute inset-0 bg-gradient-to-r from-cmc-green/5 to-transparent"
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+            <CardTitle className="text-lg font-semibold text-white flex items-center gap-2">
+              Total Earnings
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+              >
+                <Coins className="text-cmc-green text-xl" />
+              </motion.div>
+            </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="relative z-10">
             <div className="text-3xl font-bold text-cmc-green mb-2" data-testid="text-total-btc">
               {formatBtc(totals.totalBtc)}
             </div>
             <div className="text-sm text-cmc-gray" data-testid="text-total-usd">
               ≈ {formatUsd(totals.totalUsd)}
             </div>
-            <div className="mt-4 bg-cmc-dark rounded-lg p-3">
-              <div className="text-sm text-cmc-gray mb-1">Today's Earnings</div>
-              <div className="text-lg font-semibold text-cmc-green" data-testid="text-today-earnings">
-                {earnings.length > 0 ? `+${formatBtc(earnings[0]?.amount || 0)}` : "+0.00000000 BTC"}
+            <div className="mt-4 space-y-3">
+              <div className="bg-cmc-dark rounded-lg p-3">
+                <div className="text-sm text-cmc-gray mb-1">Today's Earnings</div>
+                <div className="text-lg font-semibold text-cmc-green" data-testid="text-today-earnings">
+                  +{formatBtc(todaysTotalBtc)}
+                </div>
               </div>
+              <div className="bg-cmc-dark rounded-lg p-3">
+                <div className="text-sm text-cmc-gray mb-1">Yesterday's Earnings</div>
+                <div className="text-lg font-semibold text-yellow-500" data-testid="text-yesterday-earnings">
+                  +{formatBtc(yesterdaysTotalBtc)}
+                </div>
+              </div>
+              <Link href="/earnings">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="w-full border-cmc-blue text-cmc-blue hover:bg-cmc-blue hover:text-white"
+                  data-testid="button-view-all-earnings"
+                >
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  View All Earnings
+                </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-cmc-card border-gray-700" data-testid="card-mining-power">
+        <Card className="bg-cmc-card border-gray-700 relative overflow-hidden" data-testid="card-mining-power">
+          {/* Live mining animation */}
+          {activeContracts.length > 0 && (
+            <motion.div 
+              className="absolute top-4 right-4 z-10"
+              animate={{ scale: [1, 1.2, 1], opacity: [0.7, 1, 0.7] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+            >
+              <div className="w-3 h-3 bg-cmc-green rounded-full"></div>
+            </motion.div>
+          )}
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-lg font-semibold text-white">Mining Power</CardTitle>
-            <Zap className="text-cmc-blue text-xl" />
+            <CardTitle className="text-lg font-semibold text-white flex items-center gap-2">
+              Mining Power ⛏️
+              {activeContracts.length > 0 && (
+                <motion.div
+                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                >
+                  <Activity className="text-cmc-blue text-xl" />
+                </motion.div>
+              )}
+            </CardTitle>
+            <motion.div
+              animate={{ opacity: [0.8, 1, 0.8] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              <Zap className="text-cmc-blue text-xl" />
+            </motion.div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-cmc-blue mb-2" data-testid="text-mining-power">
+            <div className="text-3xl font-bold text-cmc-blue mb-2 flex items-center gap-2" data-testid="text-mining-power">
               {totalMiningRate.toFixed(1)} MH/s
+              {activeContracts.length > 0 && (
+                <motion.span
+                  className="text-xs text-cmc-green font-normal"
+                  animate={{ opacity: [0, 1, 0] }}
+                  transition={{ duration: 0.8, repeat: Infinity }}
+                >
+                  MINING
+                </motion.span>
+              )}
             </div>
             <div className="text-sm text-cmc-gray" data-testid="text-active-contracts">
               {activeContracts.length} Active Contract{activeContracts.length !== 1 ? 's' : ''}
             </div>
             <div className="mt-4 bg-cmc-dark rounded-lg p-3">
               <div className="text-sm text-cmc-gray mb-1">Efficiency</div>
-              <div className="text-lg font-semibold text-cmc-green" data-testid="text-efficiency">99.8%</div>
+              <div className="text-lg font-semibold text-cmc-green flex items-center gap-2" data-testid="text-efficiency">
+                99.8%
+                {activeContracts.length > 0 && (
+                  <motion.div
+                    animate={{ rotate: [0, 360] }}
+                    transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                    className="w-4 h-4 border-2 border-cmc-green border-t-transparent rounded-full"
+                  />
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>

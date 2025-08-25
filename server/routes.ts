@@ -15,6 +15,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   await initializeMiningPlans();
   await initializeAdminUser();
   startPriceUpdateService();
+  startDailyEarningsService();
 
   // Crypto prices endpoint
   app.get('/api/crypto-prices', async (req, res) => {
@@ -757,8 +758,6 @@ async function fetchCryptoPrices() {
 // Generate daily earnings for active contracts
 async function generateDailyEarnings(userId: string, plan: any, contractId: number) {
   try {
-    // This would typically run as a scheduled job
-    // For demo purposes, we'll just create one earning entry
     const btcPrice = await storage.getCryptoPrice('BTC');
     const btcPriceUsd = Number(btcPrice?.price) || 45000;
     const dailyEarningsAmount = Number(plan.dailyEarnings);
@@ -773,6 +772,44 @@ async function generateDailyEarnings(userId: string, plan: any, contractId: numb
   } catch (error) {
     console.error("Error generating daily earnings:", error);
   }
+}
+
+// Generate earnings for all active contracts
+async function generateEarningsForAllContracts() {
+  try {
+    console.log("🔄 Generating daily earnings for all active contracts...");
+    const activeContracts = await storage.getActiveMiningContracts();
+    
+    for (const contract of activeContracts) {
+      const plan = await storage.getMiningPlan(contract.planId);
+      if (plan) {
+        await generateDailyEarnings(contract.userId.toString(), plan, contract.id);
+      }
+    }
+    
+    console.log(`✓ Generated earnings for ${activeContracts.length} active contracts`);
+  } catch (error) {
+    console.error("Error in daily earnings generation:", error);
+  }
+}
+
+// 24-hour earnings generation service
+function startDailyEarningsService() {
+  console.log("✓ Daily earnings service started");
+  
+  // Generate earnings immediately for testing
+  generateEarningsForAllContracts();
+  
+  // Generate earnings every 24 hours (86400000 milliseconds)
+  setInterval(() => {
+    generateEarningsForAllContracts();
+  }, 24 * 60 * 60 * 1000);
+  
+  // For demo purposes, also generate every 5 minutes to see results faster
+  // Remove this in production
+  setInterval(() => {
+    generateEarningsForAllContracts();
+  }, 5 * 60 * 1000);
 }
 
 // Start the price update service
