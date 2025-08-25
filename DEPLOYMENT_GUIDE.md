@@ -1,12 +1,79 @@
-# Deployment Guide for Koyeb
+# Deployment Guide - Multiple Platform Options
 
-This guide explains how to deploy your mining dashboard application to Koyeb with separate backend and frontend deployments.
+This guide explains how to deploy your mining dashboard application with separate backend and frontend deployments across different platforms.
 
 ## Prerequisites
 
-1. A Koyeb account
-2. GitHub repository with your code
-3. Environment variables ready
+1. GitHub repository with your code
+2. Environment variables ready
+3. Account on your chosen platform(s)
+
+## 🚀 Deployment Platform Options
+
+You can mix and match different platforms for optimal performance and cost. Here are the recommended combinations:
+
+### **Option 1: Backend on Koyeb + Frontend on Vercel** ⭐ **RECOMMENDED**
+✅ **Best Performance Combo**
+- **Vercel**: Built specifically for React/frontend apps with global CDN
+- **Koyeb**: Excellent for backend APIs with persistent containers
+- **Setup**: Deploy backend on Koyeb, frontend on Vercel
+- **Pros**: Lightning-fast frontend, reliable backend, automatic deployments
+
+### **Option 2: Both Backend + Frontend on Render** 💪 **SOLID CHOICE**
+✅ **Unified Management**
+- **Render**: Good all-around platform for both services
+- **Setup**: Two separate services on same platform
+- **Pros**: One dashboard, excellent database integration, simple management
+- **Best for**: Teams who prefer managing everything in one place
+
+### **Option 3: Backend on Render + Frontend on Vercel** 🚀 **ALSO GREAT**
+✅ **Best of Both Worlds**
+- **Render**: Excellent database integration for backend
+- **Vercel**: Unmatched frontend performance
+- **Setup**: Backend on Render, frontend on Vercel
+- **Pros**: Database ease + frontend speed
+
+### 📊 **Platform Strengths Summary:**
+
+| Platform | Frontend | Backend | Database | Best For |
+|----------|----------|---------|----------|----------|
+| **Vercel** | ⭐ Excellent | ❌ Limited | ❌ None | React/Next.js apps |
+| **Koyeb** | ⚠️ Basic | ⭐ Excellent | ✅ Good | Docker/API services |
+| **Render** | ✅ Good | ✅ Good | ⭐ Excellent | Full-stack apps |
+
+---
+
+## 🎯 Quick Setup Instructions by Platform
+
+### **Koyeb + Vercel Setup** (Recommended)
+
+**Koyeb (Backend):**
+- Build: `cd backend && npm ci --only=production && npm run build`
+- Run: `cd backend && npm start`
+
+**Vercel (Frontend):**
+- Connect GitHub repo → Auto-detected as React app
+- Set env: `VITE_API_URL=https://your-backend.koyeb.app`
+
+### **Render (Both) Setup**
+
+**Backend Service:**
+- Build: `cd backend && npm ci && npm run build`
+- Start: `cd backend && npm start`
+
+**Frontend Service:**
+- Build: `cd frontend && npm ci && npm run build`
+- Static: `frontend/dist`
+
+---
+
+## 🔧 Detailed Platform Instructions
+
+Choose your preferred option above, then follow the detailed instructions below:
+
+---
+
+# Option 1: Koyeb Deployment (Both Backend + Frontend)
 
 ## Backend Deployment (API Server)
 
@@ -48,7 +115,7 @@ You'll need a PostgreSQL database. You can use:
 - Koyeb's managed PostgreSQL
 - External providers like Neon, Supabase, or PlanetScale
 
-## Frontend Deployment (Static Site)
+## Frontend Deployment on Koyeb (Static Site)
 
 ### 1. Update Environment Variables
 
@@ -71,6 +138,110 @@ VITE_ENV=production
 #### Build Settings
 - **Build command**: `cd frontend && npm ci && npm run build`
 - **Static files**: `frontend/dist`
+
+---
+
+# Option 2: Koyeb + Vercel Deployment (Recommended)
+
+## Backend on Koyeb
+
+Follow the **Backend Deployment** instructions above.
+
+## Frontend on Vercel
+
+### 1. Connect Repository
+1. Go to Vercel dashboard
+2. Click "New Project"
+3. Import your GitHub repository
+4. Vercel will auto-detect it's a React app
+
+### 2. Configure Build Settings
+Vercel automatically detects the frontend folder structure:
+- **Framework Preset**: Vite (auto-detected)
+- **Root Directory**: `frontend` 
+- **Build Command**: `npm run build` (auto-detected)
+- **Output Directory**: `dist` (auto-detected)
+
+### 3. Environment Variables
+Add these in Vercel dashboard:
+```env
+VITE_API_URL=https://your-backend-service.koyeb.app
+VITE_APP_NAME=Mining Dashboard
+VITE_ENV=production
+```
+
+### 4. Deploy
+- Click "Deploy" - Vercel handles everything automatically
+- Your frontend will be available at `https://your-app.vercel.app`
+
+---
+
+# Option 3: Render Deployment (Both Services)
+
+## Backend Service on Render
+
+### 1. Create Web Service
+1. Go to Render dashboard
+2. Click "New Web Service"  
+3. Connect your GitHub repository
+4. Configure:
+
+**Build Settings:**
+- **Build Command**: `cd backend && npm ci && npm run build`
+- **Start Command**: `cd backend && npm start`
+- **Port**: 5000
+
+**Environment Variables:**
+```env
+NODE_ENV=production
+DATABASE_URL=your_postgresql_connection_string
+SESSION_SECRET=your_super_secure_session_secret_min_32_chars
+FRONTEND_URL=https://your-frontend-name.onrender.com
+```
+
+## Frontend Service on Render
+
+### 1. Create Static Site
+1. Create "New Static Site" in Render
+2. Connect same GitHub repository
+3. Configure:
+
+**Build Settings:**
+- **Build Command**: `cd frontend && npm ci && npm run build`
+- **Publish Directory**: `frontend/dist`
+
+**Environment Variables:**
+```env
+VITE_API_URL=https://your-backend-name.onrender.com
+VITE_APP_NAME=Mining Dashboard
+VITE_ENV=production
+```
+
+---
+
+# Cross-Platform Configuration
+
+## CORS Setup
+Update your backend's CORS configuration to allow requests from your frontend domain:
+
+**For Koyeb + Vercel:**
+```env
+FRONTEND_URL=https://your-app.vercel.app
+```
+
+**For Render (both):**
+```env
+FRONTEND_URL=https://your-frontend-name.onrender.com
+```
+
+## Database Connection
+All platforms work with external PostgreSQL providers:
+- **Neon** (recommended for serverless)
+- **Supabase** (good free tier)
+- **PlanetScale** (MySQL alternative)
+- **Render PostgreSQL** (if using Render for backend)
+
+---
 
 ## Performance Optimizations Implemented
 
