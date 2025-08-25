@@ -4,7 +4,7 @@ import { OAuth2Client } from 'google-auth-library';
 import { loginSchema, registerSchema, type LoginData, type RegisterData } from '@shared/schema';
 import type { Express, Request, Response, NextFunction } from 'express';
 import session from 'express-session';
-import MongoStore from 'connect-mongo';
+import pgSession from 'connect-pg-simple';
 
 // Session configuration
 export function setupSession(app: Express) {
@@ -12,9 +12,10 @@ export function setupSession(app: Express) {
     secret: process.env.SESSION_SECRET!,
     resave: false,
     saveUninitialized: false,
-    store: MongoStore.create({
-      mongoUrl: process.env.MONGODB_URI || process.env.DATABASE_URL!,
-      touchAfter: 24 * 3600 // lazy session update
+    store: new (pgSession(session))({
+      conString: process.env.DATABASE_URL!,
+      tableName: 'user_sessions',
+      createTableIfMissing: true
     }),
     cookie: {
       secure: process.env.NODE_ENV === 'production',
@@ -80,8 +81,8 @@ export function setupAuth(app: Express) {
         return res.status(401).json({ message: 'User not found' });
       }
 
-      // Don't send password
-      const { password, ...userWithoutPassword } = user.toObject();
+      // Don't send password  
+      const { password, ...userWithoutPassword } = user;
       res.json(userWithoutPassword);
     } catch (error) {
       console.error('Get user error:', error);
@@ -114,10 +115,10 @@ export function setupAuth(app: Express) {
       });
 
       // Create session
-      (req as any).session.userId = user._id.toString();
+      (req as any).session.userId = user.id.toString();
 
       // Don't send password
-      const { password, ...userWithoutPassword } = user.toObject();
+      const { password, ...userWithoutPassword } = user;
       res.status(201).json({ user: userWithoutPassword });
     } catch (error: any) {
       console.error('Registration error:', error);
@@ -147,10 +148,10 @@ export function setupAuth(app: Express) {
       }
 
       // Create session
-      (req as any).session.userId = user._id.toString();
+      (req as any).session.userId = user.id.toString();
 
       // Don't send password
-      const { password, ...userWithoutPassword } = user.toObject();
+      const { password, ...userWithoutPassword } = user;
       res.json({ user: userWithoutPassword });
     } catch (error: any) {
       console.error('Login error:', error);
@@ -204,7 +205,7 @@ export function setupAuth(app: Express) {
         const existingUser = await storage.getUserByEmail(profile.email!);
         if (existingUser) {
           // Link Google account to existing user
-          user = await storage.updateUser(existingUser._id.toString(), {
+          user = await storage.updateUser(existingUser.id, {
             googleId: profile.sub
           });
         } else {
@@ -226,7 +227,7 @@ export function setupAuth(app: Express) {
       }
 
       // Create session
-      (req as any).session.userId = user._id.toString();
+      (req as any).session.userId = user.id.toString();
 
       // Redirect to the original page or home
       const returnTo = state && typeof state === 'string' ? state : '/';
@@ -273,7 +274,7 @@ export function setupAuth(app: Express) {
       const hashedNewPassword = await bcrypt.hash(newPassword, 12);
 
       // Update password
-      await storage.updateUser(user._id.toString(), {
+      await storage.updateUser(user.id, {
         password: hashedNewPassword
       });
 

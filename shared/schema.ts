@@ -1,213 +1,138 @@
-import mongoose, { Schema, Document } from 'mongoose';
-import { z } from 'zod';
+import { pgTable, serial, varchar, text, integer, boolean, timestamp, decimal, pgEnum } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod";
 
-// User Schema
-export interface IUser extends Document {
-  _id: string;
-  email: string;
-  password?: string;
-  firstName?: string;
-  lastName?: string;
-  profileImageUrl?: string;
-  googleId?: string;
-  isAdmin: boolean;
-  isEmailVerified: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
+// Status enums
+export const transactionStatusEnum = pgEnum('transaction_status', ['pending', 'approved', 'rejected']);
+export const withdrawalStatusEnum = pgEnum('withdrawal_status', ['pending', 'processing', 'completed', 'rejected']);
 
-const userSchema = new Schema<IUser>({
-  email: { type: String, required: true, unique: true },
-  password: { type: String },
-  firstName: { type: String },
-  lastName: { type: String },
-  profileImageUrl: { type: String },
-  googleId: { type: String, unique: true, sparse: true },
-  isAdmin: { type: Boolean, default: false },
-  isEmailVerified: { type: Boolean, default: false },
-}, {
-  timestamps: true
+// User table
+export const users = pgTable('users', {
+  id: serial('id').primaryKey(),
+  email: varchar('email', { length: 255 }).notNull().unique(),
+  password: varchar('password', { length: 255 }),
+  firstName: varchar('first_name', { length: 100 }),
+  lastName: varchar('last_name', { length: 100 }),
+  profileImageUrl: varchar('profile_image_url', { length: 500 }),
+  googleId: varchar('google_id', { length: 255 }).unique(),
+  isAdmin: boolean('is_admin').default(false).notNull(),
+  isEmailVerified: boolean('is_email_verified').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Mining Plan Schema
-export interface IMiningPlan extends Document {
-  _id: string;
-  name: string;
-  price: number;
-  miningRate: number; // MH/s
-  dailyEarnings: number; // BTC
-  monthlyRoi: number; // percentage
-  contractPeriod: number; // months
-  isActive: boolean;
-  description: string;
-  features: string[];
-  createdAt: Date;
-}
-
-const miningPlanSchema = new Schema<IMiningPlan>({
-  name: { type: String, required: true },
-  price: { type: Number, required: true },
-  miningRate: { type: Number, required: true },
-  dailyEarnings: { type: Number, required: true },
-  monthlyRoi: { type: Number, required: true },
-  contractPeriod: { type: Number, required: true },
-  isActive: { type: Boolean, default: true },
-  description: { type: String, required: true },
-  features: [{ type: String }],
-}, {
-  timestamps: true
+// Mining Plans table
+export const miningPlans = pgTable('mining_plans', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 255 }).notNull(),
+  price: decimal('price', { precision: 10, scale: 2 }).notNull(),
+  miningRate: decimal('mining_rate', { precision: 10, scale: 8 }).notNull(), // MH/s
+  dailyEarnings: decimal('daily_earnings', { precision: 10, scale: 8 }).notNull(), // BTC
+  monthlyRoi: decimal('monthly_roi', { precision: 5, scale: 2 }).notNull(), // percentage
+  contractPeriod: integer('contract_period').notNull(), // months
+  isActive: boolean('is_active').default(true).notNull(),
+  description: text('description').notNull(),
+  features: text('features').array(), // JSON array of features
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Transaction Schema
-export interface ITransaction extends Document {
-  _id: string;
-  userId: string;
-  planId: string;
-  amount: number;
-  currency: string;
-  cryptoAmount: number;
-  walletAddress: string;
-  transactionHash?: string;
-  status: 'pending' | 'approved' | 'rejected';
-  approvedBy?: string;
-  approvedAt?: Date;
-  rejectionReason?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-const transactionSchema = new Schema<ITransaction>({
-  userId: { type: String, required: true, ref: 'User' },
-  planId: { type: String, required: true, ref: 'MiningPlan' },
-  amount: { type: Number, required: true },
-  currency: { type: String, required: true },
-  cryptoAmount: { type: Number, required: true },
-  walletAddress: { type: String, required: true },
-  transactionHash: { type: String },
-  status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
-  approvedBy: { type: String, ref: 'User' },
-  approvedAt: { type: Date },
-  rejectionReason: { type: String },
-}, {
-  timestamps: true
+// Transactions table
+export const transactions = pgTable('transactions', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull(),
+  planId: integer('plan_id').notNull(),
+  amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
+  currency: varchar('currency', { length: 10 }).notNull(),
+  cryptoAmount: decimal('crypto_amount', { precision: 20, scale: 8 }).notNull(),
+  walletAddress: varchar('wallet_address', { length: 255 }).notNull(),
+  transactionHash: varchar('transaction_hash', { length: 255 }),
+  status: transactionStatusEnum('status').default('pending').notNull(),
+  approvedBy: integer('approved_by'),
+  approvedAt: timestamp('approved_at'),
+  rejectionReason: text('rejection_reason'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Mining Contract Schema
-export interface IMiningContract extends Document {
-  _id: string;
-  userId: string;
-  planId: string;
-  transactionId: string;
-  startDate: Date;
-  endDate: Date;
-  isActive: boolean;
-  totalEarnings: number;
-  lastPayoutAt?: Date;
-  createdAt: Date;
-}
-
-const miningContractSchema = new Schema<IMiningContract>({
-  userId: { type: String, required: true, ref: 'User' },
-  planId: { type: String, required: true, ref: 'MiningPlan' },
-  transactionId: { type: String, required: true, ref: 'Transaction' },
-  startDate: { type: Date, required: true },
-  endDate: { type: Date, required: true },
-  isActive: { type: Boolean, default: true },
-  totalEarnings: { type: Number, default: 0 },
-  lastPayoutAt: { type: Date },
-}, {
-  timestamps: true
+// Mining Contracts table
+export const miningContracts = pgTable('mining_contracts', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull(),
+  planId: integer('plan_id').notNull(),
+  transactionId: integer('transaction_id').notNull(),
+  startDate: timestamp('start_date').notNull(),
+  endDate: timestamp('end_date').notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  totalEarnings: decimal('total_earnings', { precision: 20, scale: 8 }).default('0').notNull(),
+  lastPayoutAt: timestamp('last_payout_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Mining Earnings Schema
-export interface IMiningEarning extends Document {
-  _id: string;
-  contractId: string;
-  userId: string;
-  date: Date;
-  amount: number; // BTC
-  usdValue: number;
-  createdAt: Date;
-}
-
-const miningEarningSchema = new Schema<IMiningEarning>({
-  contractId: { type: String, required: true, ref: 'MiningContract' },
-  userId: { type: String, required: true, ref: 'User' },
-  date: { type: Date, required: true },
-  amount: { type: Number, required: true },
-  usdValue: { type: Number, required: true },
-}, {
-  timestamps: true
+// Mining Earnings table
+export const miningEarnings = pgTable('mining_earnings', {
+  id: serial('id').primaryKey(),
+  contractId: integer('contract_id').notNull(),
+  userId: integer('user_id').notNull(),
+  date: timestamp('date').notNull(),
+  amount: decimal('amount', { precision: 20, scale: 8 }).notNull(), // BTC
+  usdValue: decimal('usd_value', { precision: 10, scale: 2 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
-// Withdrawal Schema
-export interface IWithdrawal extends Document {
-  _id: string;
-  userId: string;
-  currency: string;
-  amount: number;
-  walletAddress: string;
-  status: 'pending' | 'processing' | 'completed' | 'rejected';
-  transactionHash?: string;
-  networkFee?: number;
-  processedAt?: Date;
-  createdAt: Date;
-}
-
-const withdrawalSchema = new Schema<IWithdrawal>({
-  userId: { type: String, required: true, ref: 'User' },
-  currency: { type: String, required: true },
-  amount: { type: Number, required: true },
-  walletAddress: { type: String, required: true },
-  status: { type: String, enum: ['pending', 'processing', 'completed', 'rejected'], default: 'pending' },
-  transactionHash: { type: String },
-  networkFee: { type: Number },
-  processedAt: { type: Date },
-}, {
-  timestamps: true
+// Withdrawals table
+export const withdrawals = pgTable('withdrawals', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull(),
+  currency: varchar('currency', { length: 10 }).notNull(),
+  amount: decimal('amount', { precision: 20, scale: 8 }).notNull(),
+  walletAddress: varchar('wallet_address', { length: 255 }).notNull(),
+  status: withdrawalStatusEnum('status').default('pending').notNull(),
+  transactionHash: varchar('transaction_hash', { length: 255 }),
+  networkFee: decimal('network_fee', { precision: 20, scale: 8 }).default('0'),
+  processedAt: timestamp('processed_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Crypto Price Schema
-export interface ICryptoPrice extends Document {
-  _id: string;
-  symbol: string;
-  name: string;
-  price: number;
-  change1h?: number;
-  change24h?: number;
-  change7d?: number;
-  marketCap?: number;
-  volume24h?: number;
-  circulatingSupply?: number;
-  logoUrl?: string;
-  updatedAt: Date;
-}
-
-const cryptoPriceSchema = new Schema<ICryptoPrice>({
-  symbol: { type: String, required: true, unique: true },
-  name: { type: String, required: true },
-  price: { type: Number, required: true },
-  change1h: { type: Number },
-  change24h: { type: Number },
-  change7d: { type: Number },
-  marketCap: { type: Number },
-  volume24h: { type: Number },
-  circulatingSupply: { type: Number },
-  logoUrl: { type: String },
-}, {
-  timestamps: true
+// Crypto Prices table
+export const cryptoPrices = pgTable('crypto_prices', {
+  id: serial('id').primaryKey(),
+  symbol: varchar('symbol', { length: 10 }).notNull().unique(),
+  name: varchar('name', { length: 100 }).notNull(),
+  price: decimal('price', { precision: 20, scale: 8 }).notNull(),
+  change1h: decimal('change_1h', { precision: 5, scale: 2 }),
+  change24h: decimal('change_24h', { precision: 5, scale: 2 }),
+  change7d: decimal('change_7d', { precision: 5, scale: 2 }),
+  marketCap: decimal('market_cap', { precision: 20, scale: 2 }),
+  volume24h: decimal('volume_24h', { precision: 20, scale: 2 }),
+  circulatingSupply: decimal('circulating_supply', { precision: 20, scale: 2 }),
+  logoUrl: varchar('logo_url', { length: 500 }),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Create models
-export const User = mongoose.models.User || mongoose.model<IUser>('User', userSchema);
-export const MiningPlan = mongoose.models.MiningPlan || mongoose.model<IMiningPlan>('MiningPlan', miningPlanSchema);
-export const Transaction = mongoose.models.Transaction || mongoose.model<ITransaction>('Transaction', transactionSchema);
-export const MiningContract = mongoose.models.MiningContract || mongoose.model<IMiningContract>('MiningContract', miningContractSchema);
-export const MiningEarning = mongoose.models.MiningEarning || mongoose.model<IMiningEarning>('MiningEarning', miningEarningSchema);
-export const Withdrawal = mongoose.models.Withdrawal || mongoose.model<IWithdrawal>('Withdrawal', withdrawalSchema);
-export const CryptoPrice = mongoose.models.CryptoPrice || mongoose.model<ICryptoPrice>('CryptoPrice', cryptoPriceSchema);
+// Announcements table (for admin ads/promotions)
+export const announcements = pgTable('announcements', {
+  id: serial('id').primaryKey(),
+  title: varchar('title', { length: 255 }).notNull(),
+  content: text('content').notNull(),
+  type: varchar('type', { length: 20 }).default('promotion').notNull(), // promotion, announcement, warning
+  isActive: boolean('is_active').default(true).notNull(),
+  createdBy: integer('created_by').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
 
-// Validation schemas
+// Zod schemas for validation
+export const createUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  isAdmin: true,
+  isEmailVerified: true,
+});
+
 export const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
@@ -221,7 +146,7 @@ export const registerSchema = z.object({
 });
 
 export const createTransactionSchema = z.object({
-  planId: z.string(),
+  planId: z.number(),
   currency: z.string(),
   cryptoAmount: z.number().positive(),
   walletAddress: z.string().min(1),
@@ -234,19 +159,36 @@ export const createWithdrawalSchema = z.object({
   walletAddress: z.string().min(1),
 });
 
-// Types
-export type User = IUser;
-export type MiningPlan = IMiningPlan;
-export type Transaction = ITransaction;
-export type MiningContract = IMiningContract;
-export type MiningEarning = IMiningEarning;
-export type Withdrawal = IWithdrawal;
-export type CryptoPrice = ICryptoPrice;
+export const createAnnouncementSchema = z.object({
+  title: z.string().min(1),
+  content: z.string().min(1),
+  type: z.string().default('promotion'),
+  isActive: z.boolean().default(true),
+});
+
+// Type definitions
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
+export type MiningPlan = typeof miningPlans.$inferSelect;
+export type NewMiningPlan = typeof miningPlans.$inferInsert;
+export type Transaction = typeof transactions.$inferSelect;
+export type NewTransaction = typeof transactions.$inferInsert;
+export type MiningContract = typeof miningContracts.$inferSelect;
+export type NewMiningContract = typeof miningContracts.$inferInsert;
+export type MiningEarning = typeof miningEarnings.$inferSelect;
+export type NewMiningEarning = typeof miningEarnings.$inferInsert;
+export type Withdrawal = typeof withdrawals.$inferSelect;
+export type NewWithdrawal = typeof withdrawals.$inferInsert;
+export type CryptoPrice = typeof cryptoPrices.$inferSelect;
+export type NewCryptoPrice = typeof cryptoPrices.$inferInsert;
+export type Announcement = typeof announcements.$inferSelect;
+export type NewAnnouncement = typeof announcements.$inferInsert;
 
 export type LoginData = z.infer<typeof loginSchema>;
 export type RegisterData = z.infer<typeof registerSchema>;
 export type CreateTransactionData = z.infer<typeof createTransactionSchema>;
 export type CreateWithdrawalData = z.infer<typeof createWithdrawalSchema>;
+export type CreateAnnouncementData = z.infer<typeof createAnnouncementSchema>;
 
 // Crypto payment addresses
 export const PAYMENT_ADDRESSES = {

@@ -11,13 +11,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Link, useLocation } from "wouter";
-import { ArrowLeft, Check, X, Clock, DollarSign, Users, TrendingUp, TrendingDown } from "lucide-react";
+import { ArrowLeft, Check, X, Clock, DollarSign, Users, TrendingUp, TrendingDown, Megaphone, Plus, Edit, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 
 interface Transaction {
-  _id: string;
-  userId: string;
-  planId: string;
+  id: number;
+  userId: number;
+  planId: number;
   amount: string;
   currency: string;
   cryptoAmount: string;
@@ -38,14 +41,25 @@ interface AdminStats {
 }
 
 interface Withdrawal {
-  _id: string;
-  userId: string;
-  amount: number;
-  btcAddress: string;
+  id: number;
+  userId: number;
+  amount: string;
+  walletAddress: string;
   status: string;
   createdAt: string;
   userEmail?: string;
   userName?: string;
+}
+
+interface Announcement {
+  id: number;
+  title: string;
+  content: string;
+  type: string;
+  isActive: boolean;
+  createdBy: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export default function Admin() {
@@ -53,8 +67,18 @@ export default function Admin() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [rejectReason, setRejectReason] = useState("");
-  const [selectedTransaction, setSelectedTransaction] = useState<string | null>(null);
+  const [selectedTransaction, setSelectedTransaction] = useState<number | null>(null);
   const [, setLocation] = useLocation();
+  
+  // Announcement management state
+  const [showCreateAnnouncement, setShowCreateAnnouncement] = useState(false);
+  const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
+  const [announcementForm, setAnnouncementForm] = useState({
+    title: "",
+    content: "",
+    type: "promotion",
+    isActive: true
+  });
 
   useEffect(() => {
     if (!isLoading && (!user || !user.isAdmin)) {
@@ -85,8 +109,13 @@ export default function Admin() {
     enabled: !!user?.isAdmin,
   });
 
+  const { data: announcements = [], isLoading: announcementsLoading } = useQuery<Announcement[]>({
+    queryKey: ["/api/admin/announcements"],
+    enabled: !!user?.isAdmin,
+  });
+
   const approveMutation = useMutation({
-    mutationFn: async (transactionId: string) => {
+    mutationFn: async (transactionId: number) => {
       await apiRequest("POST", `/api/admin/transactions/${transactionId}/approve`);
     },
     onSuccess: () => {
@@ -106,7 +135,7 @@ export default function Admin() {
   });
 
   const rejectMutation = useMutation({
-    mutationFn: async ({ transactionId, reason }: { transactionId: string; reason: string }) => {
+    mutationFn: async ({ transactionId, reason }: { transactionId: number; reason: string }) => {
       await apiRequest("POST", `/api/admin/transactions/${transactionId}/reject`, { reason });
     },
     onSuccess: () => {
@@ -127,7 +156,51 @@ export default function Admin() {
     },
   });
 
-  const handleApprove = (transactionId: string) => {
+  // Announcement mutations
+  const createAnnouncementMutation = useMutation({
+    mutationFn: async (data: typeof announcementForm) => {
+      await apiRequest("POST", "/api/admin/announcements", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/announcements"] });
+      toast({ title: "Success", description: "Announcement created successfully" });
+      setAnnouncementForm({ title: "", content: "", type: "promotion", isActive: true });
+      setShowCreateAnnouncement(false);
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to create announcement", variant: "destructive" });
+    },
+  });
+
+  const updateAnnouncementMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<typeof announcementForm> }) => {
+      await apiRequest("PUT", `/api/admin/announcements/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/announcements"] });
+      toast({ title: "Success", description: "Announcement updated successfully" });
+      setEditingAnnouncement(null);
+      setAnnouncementForm({ title: "", content: "", type: "promotion", isActive: true });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update announcement", variant: "destructive" });
+    },
+  });
+
+  const deleteAnnouncementMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/admin/announcements/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/announcements"] });
+      toast({ title: "Success", description: "Announcement deleted successfully" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to delete announcement", variant: "destructive" });
+    },
+  });
+
+  const handleApprove = (transactionId: number) => {
     approveMutation.mutate(transactionId);
   };
 
@@ -287,9 +360,9 @@ export default function Admin() {
                   </TableHeader>
                   <TableBody>
                     {transactions.map((transaction: Transaction) => (
-                      <TableRow key={transaction._id || 'unknown'} className="border-gray-700" data-testid={`row-transaction-${transaction._id || 'unknown'}`}>
+                      <TableRow key={transaction.id} className="border-gray-700" data-testid={`row-transaction-${transaction.id}`}>
                         <TableCell className="font-mono text-sm">
-                          {transaction._id ? transaction._id.slice(0, 8) + '...' : 'N/A'}
+                          {transaction.id ? transaction.id.toString().slice(0, 8) + '...' : 'N/A'}
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col">
@@ -322,10 +395,10 @@ export default function Admin() {
                           <div className="flex space-x-2">
                             <Button
                               size="sm"
-                              onClick={() => handleApprove(transaction._id)}
-                              disabled={approveMutation.isPending || !transaction._id}
+                              onClick={() => handleApprove(transaction.id)}
+                              disabled={approveMutation.isPending || !transaction.id}
                               className="bg-cmc-green hover:bg-green-600"
-                              data-testid={`button-approve-${transaction._id || 'unknown'}`}
+                              data-testid={`button-approve-${transaction.id}`}
                             >
                               <Check className="w-4 h-4 mr-1" />
                               Approve
@@ -335,9 +408,9 @@ export default function Admin() {
                                 <Button
                                   size="sm"
                                   variant="destructive"
-                                  onClick={() => setSelectedTransaction(transaction._id)}
+                                  onClick={() => setSelectedTransaction(transaction.id)}
                                   disabled={rejectMutation.isPending}
-                                  data-testid={`button-reject-${transaction._id || 'unknown'}`}
+                                  data-testid={`button-reject-${transaction.id}`}
                                 >
                                   <X className="w-4 h-4 mr-1" />
                                   Reject
@@ -394,6 +467,183 @@ export default function Admin() {
             )}
           </CardContent>
         </Card>
+
+        {/* Announcements Management */}
+        <Card className="bg-cmc-card border-gray-700" data-testid="card-announcements">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Megaphone className="text-orange-500 text-xl" />
+              <CardTitle className="text-xl font-bold text-white">Announcements & Promotions</CardTitle>
+            </div>
+            <Button 
+              onClick={() => setShowCreateAnnouncement(true)}
+              className="bg-orange-500 hover:bg-orange-600"
+              data-testid="button-create-announcement"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Create Announcement
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {announcementsLoading ? (
+              <div className="text-center py-8">
+                <div className="text-cmc-gray">Loading announcements...</div>
+              </div>
+            ) : announcements.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-cmc-gray" data-testid="text-no-announcements">No announcements created</div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {announcements.map((announcement: Announcement) => (
+                  <div key={announcement.id} className="bg-cmc-dark rounded-lg p-4" data-testid={`announcement-${announcement.id}`}>
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex items-center space-x-3">
+                        <h3 className="text-lg font-semibold text-white">{announcement.title}</h3>
+                        <Badge 
+                          variant={announcement.type === 'promotion' ? 'default' : announcement.type === 'warning' ? 'destructive' : 'secondary'}
+                          className="capitalize"
+                        >
+                          {announcement.type}
+                        </Badge>
+                        <Badge variant={announcement.isActive ? 'default' : 'secondary'}>
+                          {announcement.isActive ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => {
+                            setEditingAnnouncement(announcement);
+                            setAnnouncementForm({
+                              title: announcement.title,
+                              content: announcement.content,
+                              type: announcement.type,
+                              isActive: announcement.isActive
+                            });
+                          }}
+                          data-testid={`button-edit-${announcement.id}`}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="destructive"
+                          onClick={() => deleteAnnouncementMutation.mutate(announcement.id)}
+                          disabled={deleteAnnouncementMutation.isPending}
+                          data-testid={`button-delete-${announcement.id}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <p className="text-cmc-gray text-sm mb-2">{announcement.content}</p>
+                    <div className="text-xs text-cmc-gray">
+                      Created: {new Date(announcement.createdAt).toLocaleDateString()} | 
+                      Updated: {new Date(announcement.updatedAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Create/Edit Announcement Dialog */}
+        <Dialog open={showCreateAnnouncement || !!editingAnnouncement} onOpenChange={(open) => {
+          if (!open) {
+            setShowCreateAnnouncement(false);
+            setEditingAnnouncement(null);
+            setAnnouncementForm({ title: "", content: "", type: "promotion", isActive: true });
+          }
+        }}>
+          <DialogContent className="bg-cmc-card border-gray-700 max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-white">
+                {editingAnnouncement ? 'Edit Announcement' : 'Create New Announcement'}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="title" className="text-cmc-gray">Title</Label>
+                <Input
+                  id="title"
+                  value={announcementForm.title}
+                  onChange={(e) => setAnnouncementForm({...announcementForm, title: e.target.value})}
+                  className="bg-cmc-dark border-gray-600 text-white mt-1"
+                  placeholder="Enter announcement title..."
+                  data-testid="input-announcement-title"
+                />
+              </div>
+              <div>
+                <Label htmlFor="content" className="text-cmc-gray">Content</Label>
+                <Textarea
+                  id="content"
+                  value={announcementForm.content}
+                  onChange={(e) => setAnnouncementForm({...announcementForm, content: e.target.value})}
+                  className="bg-cmc-dark border-gray-600 text-white mt-1 min-h-[120px]"
+                  placeholder="Enter announcement content..."
+                  data-testid="textarea-announcement-content"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="type" className="text-cmc-gray">Type</Label>
+                  <Select value={announcementForm.type} onValueChange={(value) => setAnnouncementForm({...announcementForm, type: value})}>
+                    <SelectTrigger className="bg-cmc-dark border-gray-600 text-white mt-1" data-testid="select-announcement-type">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="promotion">Promotion</SelectItem>
+                      <SelectItem value="announcement">Announcement</SelectItem>
+                      <SelectItem value="warning">Warning</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center space-x-2 mt-6">
+                  <Switch
+                    checked={announcementForm.isActive}
+                    onCheckedChange={(checked) => setAnnouncementForm({...announcementForm, isActive: checked})}
+                    data-testid="switch-announcement-active"
+                  />
+                  <Label className="text-cmc-gray">Active</Label>
+                </div>
+              </div>
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowCreateAnnouncement(false);
+                    setEditingAnnouncement(null);
+                    setAnnouncementForm({ title: "", content: "", type: "promotion", isActive: true });
+                  }}
+                  data-testid="button-cancel-announcement"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (editingAnnouncement) {
+                      updateAnnouncementMutation.mutate({ 
+                        id: editingAnnouncement.id, 
+                        data: announcementForm 
+                      });
+                    } else {
+                      createAnnouncementMutation.mutate(announcementForm);
+                    }
+                  }}
+                  disabled={!announcementForm.title.trim() || !announcementForm.content.trim() || 
+                           createAnnouncementMutation.isPending || updateAnnouncementMutation.isPending}
+                  className="bg-orange-500 hover:bg-orange-600"
+                  data-testid="button-save-announcement"
+                >
+                  {editingAnnouncement ? 'Update' : 'Create'} Announcement
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

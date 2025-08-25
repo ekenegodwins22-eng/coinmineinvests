@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, isAdmin } from "./auth";
-import { createTransactionSchema, createWithdrawalSchema, PAYMENT_ADDRESSES } from "@shared/schema";
+import { createTransactionSchema, createWithdrawalSchema, createAnnouncementSchema, PAYMENT_ADDRESSES } from "@shared/schema";
 import { z } from "zod";
 import axios from 'axios';
 import bcrypt from 'bcryptjs';
@@ -46,7 +46,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User transactions
   app.get('/api/transactions', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user._id.toString();
+      const userId = req.user.id;
       const transactions = await storage.getUserTransactions(userId);
       res.json(transactions);
     } catch (error) {
@@ -58,7 +58,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create transaction
   app.post('/api/transactions', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user._id.toString();
+      const userId = req.user.id;
       const transactionData = createTransactionSchema.parse(req.body);
 
       // Get the mining plan to calculate USD amount
@@ -87,7 +87,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User mining contracts
   app.get('/api/mining-contracts', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user._id.toString();
+      const userId = req.user.id;
       const contracts = await storage.getUserMiningContracts(userId);
       res.json(contracts);
     } catch (error) {
@@ -99,7 +99,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User earnings
   app.get('/api/earnings', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user._id.toString();
+      const userId = req.user.id;
       const [earnings, totals] = await Promise.all([
         storage.getUserEarnings(userId),
         storage.getUserTotalEarnings(userId)
@@ -114,7 +114,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User withdrawals
   app.get('/api/withdrawals', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user._id.toString();
+      const userId = req.user.id;
       const withdrawals = await storage.getUserWithdrawals(userId);
       res.json(withdrawals);
     } catch (error) {
@@ -126,7 +126,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create withdrawal
   app.post('/api/withdrawals', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user._id.toString();
+      const userId = req.user.id;
       const withdrawalData = createWithdrawalSchema.parse(req.body);
 
       // Check if user has sufficient balance
@@ -170,7 +170,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const totalWithdrawals = allWithdrawals
         .filter(w => w.status === 'completed')
-        .reduce((sum, w) => sum + w.amount, 0);
+        .reduce((sum, w) => sum + parseFloat(w.amount.toString()), 0);
       
       const totalUsers = await storage.getTotalUsers();
       const pendingTransactions = await storage.getPendingTransactions();
@@ -202,10 +202,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const enhancedTransactions = await Promise.all(
         transactions.map(async (tx) => {
           const user = await storage.getUser(tx.userId);
-          // Convert Mongoose document to plain object to avoid metadata issues
-          const plainTx = tx.toObject ? tx.toObject() : tx;
           return {
-            ...plainTx,
+            ...tx,
             userEmail: user?.email || 'Unknown',
             userName: user ? `${user.firstName} ${user.lastName}` : 'Unknown'
           };
@@ -240,7 +238,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { id } = req.params;
-      const transaction = await storage.approveTransaction(id, req.user._id.toString());
+      const transaction = await storage.approveTransaction(parseInt(id), req.user.id);
       
       if (!transaction) {
         return res.status(404).json({ message: "Transaction not found" });
@@ -257,7 +255,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await storage.createMiningContract({
             userId: transaction.userId,
             planId: transaction.planId,
-            transactionId: transaction._id.toString(),
+            transactionId: transaction.id,
             startDate,
             endDate,
             isActive: true,
@@ -332,6 +330,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error processing withdrawal:", error);
       res.status(500).json({ message: "Failed to process withdrawal" });
+    }
+  });
+
+  // Announcements routes
+  app.get('/api/announcements', async (req, res) => {
+    try {
+      const announcements = await storage.getActiveAnnouncements();
+      res.json(announcements);
+    } catch (error) {
+      console.error("Error fetching announcements:", error);
+      res.status(500).json({ message: "Failed to fetch announcements" });
+    }
+  });
+
+  // Admin announcements management
+  app.get('/api/admin/announcements', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!req.user.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const announcements = await storage.getAllAnnouncements();
+      res.json(announcements);
+    } catch (error) {
+      console.error("Error fetching admin announcements:", error);
+      res.status(500).json({ message: "Failed to fetch announcements" });
+    }
+  });
+
+  app.post('/api/admin/announcements', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!req.user.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const announcementData = createAnnouncementSchema.parse(req.body);
+      const announcement = await storage.createAnnouncement({
+        ...announcementData,
+        createdBy: req.user.id
+      });
+
+      res.json(announcement);
+    } catch (error) {
+      console.error("Error creating announcement:", error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid announcement data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create announcement" });
+      }
+    }
+  });
+
+  app.put('/api/admin/announcements/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!req.user.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      const updates = createAnnouncementSchema.partial().parse(req.body);
+      
+      const announcement = await storage.updateAnnouncement(parseInt(id), updates);
+      
+      if (!announcement) {
+        return res.status(404).json({ message: "Announcement not found" });
+      }
+
+      res.json(announcement);
+    } catch (error) {
+      console.error("Error updating announcement:", error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid announcement data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to update announcement" });
+      }
+    }
+  });
+
+  app.delete('/api/admin/announcements/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!req.user.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      const success = await storage.deleteAnnouncement(parseInt(id));
+      
+      if (!success) {
+        return res.status(404).json({ message: "Announcement not found" });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting announcement:", error);
+      res.status(500).json({ message: "Failed to delete announcement" });
     }
   });
 

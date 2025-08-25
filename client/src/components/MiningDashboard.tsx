@@ -2,18 +2,18 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Coins, Zap, Clock, TrendingUp } from "lucide-react";
+import { Coins, Zap, Clock, TrendingUp, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
 
 interface MiningEarning {
-  _id: string;
+  id: number;
   amount: number;
   usdValue: number;
   date: string;
 }
 
 interface MiningContract {
-  _id: string;
-  planId: string;
+  id: number;
+  planId: number;
   startDate: string;
   endDate: string;
   isActive: boolean;
@@ -21,8 +21,16 @@ interface MiningContract {
 }
 
 interface Transaction {
-  _id: string;
-  amount: number;
+  id: number;
+  amount: string;
+  currency: string;
+  status: string;
+  createdAt: string;
+}
+
+interface Withdrawal {
+  id: number;
+  amount: string;
   currency: string;
   status: string;
   createdAt: string;
@@ -46,11 +54,25 @@ export default function MiningDashboard() {
     queryKey: ["/api/transactions"],
   });
 
+  const { data: withdrawals = [], isLoading: withdrawalsLoading } = useQuery<Withdrawal[]>({
+    queryKey: ["/api/withdrawals"],
+  });
+
   const earnings = earningsData?.earnings || [];
   const totals = earningsData?.totals || { totalBtc: 0, totalUsd: 0 };
 
   const activeContracts = contracts.filter((contract: MiningContract) => contract.isActive);
   const totalMiningRate = activeContracts.length * 5; // Assuming average 5 MH/s per contract
+
+  // Calculate total deposits (approved transactions)
+  const totalDeposits = transactions
+    .filter(tx => tx.status === 'approved')
+    .reduce((sum, tx) => sum + parseFloat(tx.amount), 0);
+
+  // Calculate total withdrawals (completed withdrawals)
+  const totalWithdrawals = withdrawals
+    .filter(w => w.status === 'completed')
+    .reduce((sum, w) => sum + parseFloat(w.amount), 0);
 
   const formatBtc = (amount: number | string) => {
     return `${Number(amount).toFixed(8)} BTC`;
@@ -60,7 +82,7 @@ export default function MiningDashboard() {
     return `$${Number(amount).toFixed(2)}`;
   };
 
-  if (earningsLoading || contractsLoading || transactionsLoading) {
+  if (earningsLoading || contractsLoading || transactionsLoading || withdrawalsLoading) {
     return (
       <div className="text-center py-8">
         <div className="text-cmc-gray" data-testid="text-loading-dashboard">Loading dashboard...</div>
@@ -71,7 +93,7 @@ export default function MiningDashboard() {
   return (
     <div className="space-y-8" data-testid="container-mining-dashboard">
       {/* Stats Cards */}
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid lg:grid-cols-5 gap-6">
         <Card className="bg-cmc-card border-gray-700" data-testid="card-total-earnings">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-lg font-semibold text-white">Total Earnings</CardTitle>
@@ -108,6 +130,44 @@ export default function MiningDashboard() {
             <div className="mt-4 bg-cmc-dark rounded-lg p-3">
               <div className="text-sm text-cmc-gray mb-1">Efficiency</div>
               <div className="text-lg font-semibold text-cmc-green" data-testid="text-efficiency">99.8%</div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-cmc-card border-gray-700" data-testid="card-total-deposits">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-lg font-semibold text-white">Total Deposits</CardTitle>
+            <ArrowUpCircle className="text-green-500 text-xl" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-green-500 mb-2" data-testid="text-total-deposits">
+              {formatUsd(totalDeposits)}
+            </div>
+            <div className="text-sm text-cmc-gray">All Time Investments</div>
+            <div className="mt-4 bg-cmc-dark rounded-lg p-3">
+              <div className="text-sm text-cmc-gray mb-1">Status</div>
+              <div className="text-lg font-semibold text-green-500" data-testid="text-deposits-status">
+                Active Investing
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-cmc-card border-gray-700" data-testid="card-total-withdrawals">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-lg font-semibold text-white">Total Withdrawals</CardTitle>
+            <ArrowDownCircle className="text-orange-500 text-xl" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-orange-500 mb-2" data-testid="text-total-withdrawals">
+              {formatUsd(totalWithdrawals)}
+            </div>
+            <div className="text-sm text-cmc-gray">Successfully Withdrawn</div>
+            <div className="mt-4 bg-cmc-dark rounded-lg p-3">
+              <div className="text-sm text-cmc-gray mb-1">Available Balance</div>
+              <div className="text-lg font-semibold text-cmc-green" data-testid="text-available-balance">
+                {formatBtc(totals.totalBtc)}
+              </div>
             </div>
           </CardContent>
         </Card>

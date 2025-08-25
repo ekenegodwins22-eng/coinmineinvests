@@ -1,41 +1,17 @@
-import mongoose from 'mongoose';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import * as schema from '@shared/schema';
 
-const MONGODB_URI = process.env.MONGODB_URI || process.env.DATABASE_URL;
+const DATABASE_URL = process.env.DATABASE_URL;
 
-if (!MONGODB_URI) {
-  throw new Error('MONGODB_URI or DATABASE_URL environment variable must be set');
+if (!DATABASE_URL) {
+  throw new Error('DATABASE_URL environment variable must be set');
 }
 
-// Global is used here to maintain a cached connection across hot reloads in development
-let cached = (global as any).mongoose;
+// Create the connection
+const client = postgres(DATABASE_URL);
 
-if (!cached) {
-  cached = (global as any).mongoose = { conn: null, promise: null };
-}
+// Create drizzle db instance
+export const db = drizzle(client, { schema });
 
-async function connectDB() {
-  if (cached.conn) {
-    return cached.conn;
-  }
-
-  if (!cached.promise) {
-    const opts = {
-      bufferCommands: false,
-    };
-
-    cached.promise = mongoose.connect(MONGODB_URI!, opts).then((mongoose) => {
-      return mongoose;
-    });
-  }
-
-  try {
-    cached.conn = await cached.promise;
-  } catch (e) {
-    cached.promise = null;
-    throw e;
-  }
-
-  return cached.conn;
-}
-
-export default connectDB;
+export default db;
