@@ -760,13 +760,16 @@ async function generateDailyEarnings(userId: string, plan: any, contractId: numb
   try {
     const btcPrice = await storage.getCryptoPrice('BTC');
     const btcPriceUsd = Number(btcPrice?.price) || 111325;
-    const perSecondEarningsAmount = Number(plan.dailyEarnings); // Now contains per-second amounts
+    
+    // Convert daily earnings to per-second earnings (daily / 86,400 seconds in a day)
+    const dailyEarningsAmount = Number(plan.dailyEarnings);
+    const perSecondEarningsAmount = dailyEarningsAmount / 86400; // 24 hours * 60 minutes * 60 seconds = 86,400
     
     await storage.createMiningEarning({
       contractId,
       userId: Number(userId),
       date: new Date(),
-      amount: plan.dailyEarnings, // Per-second BTC amount
+      amount: perSecondEarningsAmount.toString(), // Correct per-second BTC amount
       usdValue: (perSecondEarningsAmount * btcPriceUsd).toString(),
     });
   } catch (error) {
