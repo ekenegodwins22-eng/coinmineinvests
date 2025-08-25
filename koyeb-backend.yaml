@@ -1,0 +1,47 @@
+# Koyeb configuration for backend deployment
+# Use this for backend service deployment
+
+name: mining-dashboard-backend
+type: web
+
+# Repository configuration - select your main branch
+git:
+  repository: github.com/yourusername/your-repository
+  branch: main
+
+# Build configuration for backend (from root directory)
+build:
+  buildCommand: |
+    cd backend
+    npm ci --only=production
+    npm run build
+  runCommand: |
+    cd backend
+    npm start
+
+# Environment variables for backend
+env:
+  NODE_ENV: production
+  # Add your actual environment variables:
+  # DATABASE_URL: your_database_url
+  # SESSION_SECRET: your_session_secret  
+  # FRONTEND_URL: your_frontend_url
+
+# Instance configuration
+instance:
+  type: free
+
+# Port configuration
+ports:
+  - port: 5000
+    protocol: http
+
+# Health check
+health_check:
+  http:
+    path: /health
+    port: 5000
+
+# Regions
+regions:
+  - was

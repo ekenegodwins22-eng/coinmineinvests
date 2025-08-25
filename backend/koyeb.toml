@@ -1,0 +1,28 @@
+[app]
+name = "mining-dashboard-backend"
+
+[[services]]
+name = "backend-api"
+type = "web"
+
+[services.git]
+repository = "github.com/yourusername/your-repository"
+branch = "main"
+
+[services.build]
+buildCommand = "npm ci --only=production && npm run build"
+runCommand = "npm start"
+
+[[services.ports]]
+port = 5000
+protocol = "http"
+
+[services.env]
+NODE_ENV = "production"
+
+[services.health_check]
+path = "/health"
+port = 5000
+
+[services.instance]
+type = "free"

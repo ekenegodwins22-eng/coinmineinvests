@@ -12,15 +12,18 @@ This guide explains how to deploy your mining dashboard application to Koyeb wit
 
 ### 1. Deploy to Koyeb
 
+**Important**: Since your backend and frontend are in the same repository, Koyeb won't show separate backend/frontend folders. Follow these steps:
+
 1. Go to your Koyeb dashboard
-2. Click "Create Service"
+2. Click "Create Service"  
 3. Choose "GitHub" as the source
-4. Select your repository and the `backend` folder
-5. Configure the following:
+4. Select your repository (you'll only see the main branch - this is normal)
+5. **Leave the directory path empty** or put `.` (root)
+6. Configure the following:
 
 #### Build Settings
-- **Build command**: `npm run build`
-- **Run command**: `npm start`
+- **Build command**: `cd backend && npm ci --only=production && npm run build`
+- **Run command**: `cd backend && npm start`
 - **Port**: `5000`
 
 #### Environment Variables
@@ -60,13 +63,14 @@ VITE_ENV=production
 ### 2. Deploy to Koyeb (Static)
 
 1. Create another service in Koyeb
-2. Choose "GitHub" as the source
-3. Select your repository and the `frontend` folder
-4. Configure the following:
+2. Choose "GitHub" as the source  
+3. Select your repository (same repo, just create a new service)
+4. **Leave the directory path empty** or put `.` (root)
+5. Configure the following:
 
 #### Build Settings
-- **Build command**: `npm run build`
-- **Static files**: `dist`
+- **Build command**: `cd frontend && npm ci && npm run build`
+- **Static files**: `frontend/dist`
 
 ## Performance Optimizations Implemented
 

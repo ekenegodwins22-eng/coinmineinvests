@@ -1,0 +1,24 @@
+[app]
+name = "mining-dashboard-frontend"
+
+[[services]]
+name = "frontend-app"
+type = "static"
+
+[services.git]
+repository = "github.com/yourusername/your-repository"
+branch = "main"
+
+[services.build]
+buildCommand = "npm ci && npm run build"
+
+[services.static]
+path = "dist"
+
+[services.env]
+VITE_API_URL = "https://your-backend-service.koyeb.app"
+VITE_APP_NAME = "Mining Dashboard"
+VITE_ENV = "production"
+
+[services.instance]
+type = "free"
