@@ -1,0 +1,825 @@
+{
+  "generated": "2025-08-25T21:15:49.631Z",
+  "workspaces": {
+    "backend": {
+      "dependencies": {
+        "@types/bcryptjs": {
+          "version": "^2.4.6",
+          "installed": true
+        },
+        "@types/connect-pg-simple": {
+          "version": "^7.0.3",
+          "installed": true
+        },
+        "@types/cors": {
+          "version": "^2.8.19",
+          "installed": true
+        },
+        "@types/express": {
+          "version": "^4.17.21",
+          "installed": true
+        },
+        "@types/express-session": {
+          "version": "^1.18.2",
+          "installed": true
+        },
+        "@types/node": {
+          "version": "^20.16.11",
+          "installed": true
+        },
+        "@types/passport": {
+          "version": "^1.0.17",
+          "installed": true
+        },
+        "@types/passport-google-oauth20": {
+          "version": "^2.0.16",
+          "installed": true
+        },
+        "@types/passport-local": {
+          "version": "^1.0.38",
+          "installed": true
+        },
+        "@types/pg": {
+          "version": "^8.15.5",
+          "installed": true
+        },
+        "@types/ws": {
+          "version": "^8.18.1",
+          "installed": true
+        },
+        "bcryptjs": {
+          "version": "^3.0.2",
+          "installed": true
+        },
+        "connect-mongo": {
+          "version": "^5.1.0",
+          "installed": true
+        },
+        "connect-pg-simple": {
+          "version": "^10.0.0",
+          "installed": true
+        },
+        "cors": {
+          "version": "^2.8.5",
+          "installed": true
+        },
+        "drizzle-kit": {
+          "version": "^0.31.4",
+          "installed": true
+        },
+        "drizzle-orm": {
+          "version": "^0.44.5",
+          "installed": true
+        },
+        "drizzle-zod": {
+          "version": "^0.8.3",
+          "installed": true
+        },
+        "esbuild": {
+          "version": "^0.25.9",
+          "installed": true
+        },
+        "express": {
+          "version": "^4.21.2",
+          "installed": true
+        },
+        "express-session": {
+          "version": "^1.18.2",
+          "installed": true
+        },
+        "google-auth-library": {
+          "version": "^10.3.0",
+          "installed": true
+        },
+        "memorystore": {
+          "version": "^1.6.7",
+          "installed": true
+        },
+        "mongoose": {
+          "version": "^8.18.0",
+          "installed": true
+        },
+        "nanoid": {
+          "version": "^5.1.5",
+          "installed": true
+        },
+        "openid-client": {
+          "version": "^6.6.4",
+          "installed": true
+        },
+        "passport": {
+          "version": "^0.7.0",
+          "installed": true
+        },
+        "passport-google-oauth20": {
+          "version": "^2.0.0",
+          "installed": true
+        },
+        "passport-local": {
+          "version": "^1.0.0",
+          "installed": true
+        },
+        "pg": {
+          "version": "^8.16.3",
+          "installed": true
+        },
+        "postgres": {
+          "version": "^3.4.7",
+          "installed": true
+        },
+        "tsx": {
+          "version": "^4.20.5",
+          "installed": true
+        },
+        "typescript": {
+          "version": "^5.6.3",
+          "installed": true
+        },
+        "ws": {
+          "version": "^8.18.3",
+          "installed": true
+        },
+        "zod": {
+          "version": "^3.25.76",
+          "installed": true
+        },
+        "zod-validation-error": {
+          "version": "^3.5.3",
+          "installed": true
+        },
+        "bufferutil": {
+          "version": "^4.0.9",
+          "installed": true
+        }
+      }
+    },
+    "frontend": {
+      "dependencies": {
+        "@hookform/resolvers": {
+          "version": "^3.10.0",
+          "installed": true
+        },
+        "@radix-ui/react-accordion": {
+          "version": "^1.2.12",
+          "installed": true
+        },
+        "@radix-ui/react-alert-dialog": {
+          "version": "^1.1.15",
+          "installed": true
+        },
+        "@radix-ui/react-aspect-ratio": {
+          "version": "^1.1.7",
+          "installed": true
+        },
+        "@radix-ui/react-avatar": {
+          "version": "^1.1.10",
+          "installed": true
+        },
+        "@radix-ui/react-checkbox": {
+          "version": "^1.3.3",
+          "installed": true
+        },
+        "@radix-ui/react-collapsible": {
+          "version": "^1.1.12",
+          "installed": true
+        },
+        "@radix-ui/react-context-menu": {
+          "version": "^2.2.16",
+          "installed": true
+        },
+        "@radix-ui/react-dialog": {
+          "version": "^1.1.15",
+          "installed": true
+        },
+        "@radix-ui/react-dropdown-menu": {
+          "version": "^2.1.16",
+          "installed": true
+        },
+        "@radix-ui/react-hover-card": {
+          "version": "^1.1.15",
+          "installed": true
+        },
+        "@radix-ui/react-label": {
+          "version": "^2.1.7",
+          "installed": true
+        },
+        "@radix-ui/react-menubar": {
+          "version": "^1.1.16",
+          "installed": true
+        },
+        "@radix-ui/react-navigation-menu": {
+          "version": "^1.2.14",
+          "installed": true
+        },
+        "@radix-ui/react-popover": {
+          "version": "^1.1.15",
+          "installed": true
+        },
+        "@radix-ui/react-progress": {
+          "version": "^1.1.7",
+          "installed": true
+        },
+        "@radix-ui/react-radio-group": {
+          "version": "^1.3.8",
+          "installed": true
+        },
+        "@radix-ui/react-scroll-area": {
+          "version": "^1.2.10",
+          "installed": true
+        },
+        "@radix-ui/react-select": {
+          "version": "^2.2.6",
+          "installed": true
+        },
+        "@radix-ui/react-separator": {
+          "version": "^1.1.7",
+          "installed": true
+        },
+        "@radix-ui/react-slider": {
+          "version": "^1.3.6",
+          "installed": true
+        },
+        "@radix-ui/react-slot": {
+          "version": "^1.2.3",
+          "installed": true
+        },
+        "@radix-ui/react-switch": {
+          "version": "^1.2.6",
+          "installed": true
+        },
+        "@radix-ui/react-tabs": {
+          "version": "^1.1.13",
+          "installed": true
+        },
+        "@radix-ui/react-toast": {
+          "version": "^1.2.15",
+          "installed": true
+        },
+        "@radix-ui/react-toggle": {
+          "version": "^1.1.10",
+          "installed": true
+        },
+        "@radix-ui/react-toggle-group": {
+          "version": "^1.1.11",
+          "installed": true
+        },
+        "@radix-ui/react-tooltip": {
+          "version": "^1.2.8",
+          "installed": true
+        },
+        "@tanstack/react-query": {
+          "version": "^5.85.5",
+          "installed": true
+        },
+        "@types/react": {
+          "version": "^18.3.24",
+          "installed": true
+        },
+        "@types/react-dom": {
+          "version": "^18.3.7",
+          "installed": true
+        },
+        "axios": {
+          "version": "^1.11.0",
+          "installed": true
+        },
+        "class-variance-authority": {
+          "version": "^0.7.1",
+          "installed": true
+        },
+        "clsx": {
+          "version": "^2.1.1",
+          "installed": true
+        },
+        "cmdk": {
+          "version": "^1.1.1",
+          "installed": true
+        },
+        "date-fns": {
+          "version": "^3.6.0",
+          "installed": true
+        },
+        "embla-carousel-react": {
+          "version": "^8.6.0",
+          "installed": true
+        },
+        "framer-motion": {
+          "version": "^11.18.2",
+          "installed": true
+        },
+        "input-otp": {
+          "version": "^1.4.2",
+          "installed": true
+        },
+        "lucide-react": {
+          "version": "^0.453.0",
+          "installed": true
+        },
+        "next-themes": {
+          "version": "^0.4.6",
+          "installed": true
+        },
+        "react": {
+          "version": "^18.3.1",
+          "installed": true
+        },
+        "react-day-picker": {
+          "version": "^8.10.1",
+          "installed": true
+        },
+        "react-dom": {
+          "version": "^18.3.1",
+          "installed": true
+        },
+        "react-hook-form": {
+          "version": "^7.62.0",
+          "installed": true
+        },
+        "react-icons": {
+          "version": "^5.5.0",
+          "installed": true
+        },
+        "react-resizable-panels": {
+          "version": "^2.1.9",
+          "installed": true
+        },
+        "recharts": {
+          "version": "^2.15.4",
+          "installed": true
+        },
+        "tailwind-merge": {
+          "version": "^2.6.0",
+          "installed": true
+        },
+        "tailwindcss-animate": {
+          "version": "^1.0.7",
+          "installed": true
+        },
+        "tw-animate-css": {
+          "version": "^1.3.7",
+          "installed": true
+        },
+        "vaul": {
+          "version": "^1.1.2",
+          "installed": true
+        },
+        "wouter": {
+          "version": "^3.7.1",
+          "installed": true
+        },
+        "zod": {
+          "version": "^3.25.76",
+          "installed": true
+        },
+        "@tailwindcss/typography": {
+          "version": "^0.5.16",
+          "installed": true
+        },
+        "@tailwindcss/vite": {
+          "version": "^4.1.12",
+          "installed": true
+        },
+        "@types/node": {
+          "version": "^20.16.11",
+          "installed": true
+        },
+        "@vitejs/plugin-react": {
+          "version": "^4.7.0",
+          "installed": true
+        },
+        "autoprefixer": {
+          "version": "^10.4.21",
+          "installed": true
+        },
+        "postcss": {
+          "version": "^8.5.6",
+          "installed": true
+        },
+        "tailwindcss": {
+          "version": "^3.4.17",
+          "installed": true
+        },
+        "typescript": {
+          "version": "^5.6.3",
+          "installed": true
+        },
+        "vite": {
+          "version": "^5.4.19",
+          "installed": true
+        }
+      }
+    },
+    "root": {
+      "dependencies": {
+        "@hookform/resolvers": {
+          "version": "^3.10.0",
+          "installed": true
+        },
+        "@jridgewell/trace-mapping": {
+          "version": "^0.3.25",
+          "installed": true
+        },
+        "@radix-ui/react-accordion": {
+          "version": "^1.2.4",
+          "installed": true
+        },
+        "@radix-ui/react-alert-dialog": {
+          "version": "^1.1.7",
+          "installed": true
+        },
+        "@radix-ui/react-aspect-ratio": {
+          "version": "^1.1.3",
+          "installed": true
+        },
+        "@radix-ui/react-avatar": {
+          "version": "^1.1.4",
+          "installed": true
+        },
+        "@radix-ui/react-checkbox": {
+          "version": "^1.1.5",
+          "installed": true
+        },
+        "@radix-ui/react-collapsible": {
+          "version": "^1.1.4",
+          "installed": true
+        },
+        "@radix-ui/react-context-menu": {
+          "version": "^2.2.7",
+          "installed": true
+        },
+        "@radix-ui/react-dialog": {
+          "version": "^1.1.7",
+          "installed": true
+        },
+        "@radix-ui/react-dropdown-menu": {
+          "version": "^2.1.7",
+          "installed": true
+        },
+        "@radix-ui/react-hover-card": {
+          "version": "^1.1.7",
+          "installed": true
+        },
+        "@radix-ui/react-label": {
+          "version": "^2.1.3",
+          "installed": true
+        },
+        "@radix-ui/react-menubar": {
+          "version": "^1.1.7",
+          "installed": true
+        },
+        "@radix-ui/react-navigation-menu": {
+          "version": "^1.2.6",
+          "installed": true
+        },
+        "@radix-ui/react-popover": {
+          "version": "^1.1.7",
+          "installed": true
+        },
+        "@radix-ui/react-progress": {
+          "version": "^1.1.3",
+          "installed": true
+        },
+        "@radix-ui/react-radio-group": {
+          "version": "^1.2.4",
+          "installed": true
+        },
+        "@radix-ui/react-scroll-area": {
+          "version": "^1.2.4",
+          "installed": true
+        },
+        "@radix-ui/react-select": {
+          "version": "^2.1.7",
+          "installed": true
+        },
+        "@radix-ui/react-separator": {
+          "version": "^1.1.3",
+          "installed": true
+        },
+        "@radix-ui/react-slider": {
+          "version": "^1.2.4",
+          "installed": true
+        },
+        "@radix-ui/react-slot": {
+          "version": "^1.2.0",
+          "installed": true
+        },
+        "@radix-ui/react-switch": {
+          "version": "^1.1.4",
+          "installed": true
+        },
+        "@radix-ui/react-tabs": {
+          "version": "^1.1.4",
+          "installed": true
+        },
+        "@radix-ui/react-toast": {
+          "version": "^1.2.7",
+          "installed": true
+        },
+        "@radix-ui/react-toggle": {
+          "version": "^1.1.3",
+          "installed": true
+        },
+        "@radix-ui/react-toggle-group": {
+          "version": "^1.1.3",
+          "installed": true
+        },
+        "@radix-ui/react-tooltip": {
+          "version": "^1.2.0",
+          "installed": true
+        },
+        "@tanstack/react-query": {
+          "version": "^5.60.5",
+          "installed": true
+        },
+        "@types/bcryptjs": {
+          "version": "^2.4.6",
+          "installed": true
+        },
+        "@types/cors": {
+          "version": "^2.8.19",
+          "installed": true
+        },
+        "@types/memoizee": {
+          "version": "^0.4.12",
+          "installed": true
+        },
+        "@types/passport-google-oauth20": {
+          "version": "^2.0.16",
+          "installed": true
+        },
+        "@types/pg": {
+          "version": "^8.15.5",
+          "installed": true
+        },
+        "axios": {
+          "version": "^1.11.0",
+          "installed": true
+        },
+        "bcryptjs": {
+          "version": "^3.0.2",
+          "installed": true
+        },
+        "class-variance-authority": {
+          "version": "^0.7.1",
+          "installed": true
+        },
+        "clsx": {
+          "version": "^2.1.1",
+          "installed": true
+        },
+        "cmdk": {
+          "version": "^1.1.1",
+          "installed": true
+        },
+        "connect-mongo": {
+          "version": "^5.1.0",
+          "installed": true
+        },
+        "connect-pg-simple": {
+          "version": "^10.0.0",
+          "installed": true
+        },
+        "cors": {
+          "version": "^2.8.5",
+          "installed": true
+        },
+        "date-fns": {
+          "version": "^3.6.0",
+          "installed": true
+        },
+        "drizzle-kit": {
+          "version": "^0.31.4",
+          "installed": true
+        },
+        "drizzle-orm": {
+          "version": "^0.44.4",
+          "installed": true
+        },
+        "drizzle-zod": {
+          "version": "^0.8.3",
+          "installed": true
+        },
+        "embla-carousel-react": {
+          "version": "^8.6.0",
+          "installed": true
+        },
+        "express": {
+          "version": "^4.21.2",
+          "installed": true
+        },
+        "express-session": {
+          "version": "^1.18.1",
+          "installed": true
+        },
+        "framer-motion": {
+          "version": "^11.13.1",
+          "installed": true
+        },
+        "google-auth-library": {
+          "version": "^10.2.1",
+          "installed": true
+        },
+        "input-otp": {
+          "version": "^1.4.2",
+          "installed": true
+        },
+        "lucide-react": {
+          "version": "^0.453.0",
+          "installed": true
+        },
+        "memoizee": {
+          "version": "^0.4.17",
+          "installed": true
+        },
+        "memorystore": {
+          "version": "^1.6.7",
+          "installed": true
+        },
+        "mongoose": {
+          "version": "^8.18.0",
+          "installed": true
+        },
+        "nanoid": {
+          "version": "^5.1.5",
+          "installed": true
+        },
+        "next-themes": {
+          "version": "^0.4.6",
+          "installed": true
+        },
+        "openid-client": {
+          "version": "^6.6.4",
+          "installed": true
+        },
+        "passport": {
+          "version": "^0.7.0",
+          "installed": true
+        },
+        "passport-google-oauth20": {
+          "version": "^2.0.0",
+          "installed": true
+        },
+        "passport-local": {
+          "version": "^1.0.0",
+          "installed": true
+        },
+        "pg": {
+          "version": "^8.16.3",
+          "installed": true
+        },
+        "postgres": {
+          "version": "^3.4.7",
+          "installed": true
+        },
+        "react": {
+          "version": "^18.3.1",
+          "installed": true
+        },
+        "react-day-picker": {
+          "version": "^8.10.1",
+          "installed": true
+        },
+        "react-dom": {
+          "version": "^18.3.1",
+          "installed": true
+        },
+        "react-hook-form": {
+          "version": "^7.55.0",
+          "installed": true
+        },
+        "react-icons": {
+          "version": "^5.4.0",
+          "installed": true
+        },
+        "react-resizable-panels": {
+          "version": "^2.1.7",
+          "installed": true
+        },
+        "recharts": {
+          "version": "^2.15.2",
+          "installed": true
+        },
+        "tailwind-merge": {
+          "version": "^2.6.0",
+          "installed": true
+        },
+        "tailwindcss-animate": {
+          "version": "^1.0.7",
+          "installed": true
+        },
+        "tw-animate-css": {
+          "version": "^1.2.5",
+          "installed": true
+        },
+        "vaul": {
+          "version": "^1.1.2",
+          "installed": true
+        },
+        "wouter": {
+          "version": "^3.3.5",
+          "installed": true
+        },
+        "ws": {
+          "version": "^8.18.0",
+          "installed": true
+        },
+        "zod": {
+          "version": "^3.24.2",
+          "installed": true
+        },
+        "zod-validation-error": {
+          "version": "^3.4.0",
+          "installed": true
+        },
+        "@replit/vite-plugin-cartographer": {
+          "version": "^0.3.0",
+          "installed": true
+        },
+        "@replit/vite-plugin-runtime-error-modal": {
+          "version": "^0.0.3",
+          "installed": true
+        },
+        "@tailwindcss/typography": {
+          "version": "^0.5.15",
+          "installed": true
+        },
+        "@tailwindcss/vite": {
+          "version": "^4.1.3",
+          "installed": true
+        },
+        "@types/connect-pg-simple": {
+          "version": "^7.0.3",
+          "installed": true
+        },
+        "@types/express": {
+          "version": "4.17.21",
+          "installed": true
+        },
+        "@types/express-session": {
+          "version": "^1.18.0",
+          "installed": true
+        },
+        "@types/node": {
+          "version": "20.16.11",
+          "installed": true
+        },
+        "@types/passport": {
+          "version": "^1.0.16",
+          "installed": true
+        },
+        "@types/passport-local": {
+          "version": "^1.0.38",
+          "installed": true
+        },
+        "@types/react": {
+          "version": "^18.3.11",
+          "installed": true
+        },
+        "@types/react-dom": {
+          "version": "^18.3.1",
+          "installed": true
+        },
+        "@types/ws": {
+          "version": "^8.5.13",
+          "installed": true
+        },
+        "@vitejs/plugin-react": {
+          "version": "^4.3.2",
+          "installed": true
+        },
+        "autoprefixer": {
+          "version": "^10.4.20",
+          "installed": true
+        },
+        "esbuild": {
+          "version": "^0.25.0",
+          "installed": true
+        },
+        "postcss": {
+          "version": "^8.4.47",
+          "installed": true
+        },
+        "tailwindcss": {
+          "version": "^3.4.17",
+          "installed": true
+        },
+        "tsx": {
+          "version": "^4.19.1",
+          "installed": true
+        },
+        "typescript": {
+          "version": "5.6.3",
+          "installed": true
+        },
+        "vite": {
+          "version": "^5.4.19",
+          "installed": true
+        },
+        "bufferutil": {
+          "version": "^4.0.8",
+          "installed": true
+        }
+      }
+    }
+  }
+}

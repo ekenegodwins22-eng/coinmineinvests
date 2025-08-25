@@ -1,0 +1,11 @@
+{
+  "name": "dependency-manager-scripts",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "deps:check": "node dependency-manager.js --check",
+    "deps:install": "node dependency-manager.js --install",
+    "deps:verify": "node dependency-manager.js --verify",
+    "deps:auto": "node dependency-manager.js"
+  }
+}
