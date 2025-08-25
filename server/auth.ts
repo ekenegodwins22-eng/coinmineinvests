@@ -50,10 +50,30 @@ export async function isAuthenticated(req: any, res: Response, next: NextFunctio
 
 // Admin middleware
 export async function isAdmin(req: any, res: Response, next: NextFunction) {
-  if (!req.user?.isAdmin) {
-    return res.status(403).json({ message: 'Admin access required' });
+  // First check if user is authenticated
+  if (!req.session?.userId) {
+    return res.status(401).json({ message: 'Not authenticated' });
   }
-  next();
+
+  try {
+    const user = await storage.getUser(req.session.userId);
+    if (!user) {
+      req.session.destroy((err: any) => {
+        if (err) console.error('Session destroy error:', err);
+      });
+      return res.status(401).json({ message: 'User not found' });
+    }
+
+    if (!user.isAdmin) {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    req.user = user;
+    next();
+  } catch (error) {
+    console.error('Admin middleware error:', error);
+    res.status(500).json({ message: 'Authentication error' });
+  }
 }
 
 // Google OAuth client
