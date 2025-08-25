@@ -60,11 +60,6 @@ export default function AuthPage() {
     registerMutation.mutate(data);
   });
 
-  // Admin login helper
-  const handleAdminLogin = () => {
-    loginForm.setValue("email", "admin@cryptominepro.com");
-    loginForm.setValue("password", "admin123");
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 overflow-hidden relative">
@@ -198,18 +193,6 @@ export default function AuthPage() {
 
           {/* Enhanced Auth Forms */}
           <div className="w-full max-w-lg mx-auto space-y-6">
-            {/* Quick Admin Access */}
-            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-center">
-              <p className="text-red-300 text-sm mb-3">👑 Administrator Quick Access</p>
-              <Button
-                variant="outline"
-                onClick={handleAdminLogin}
-                className="border-red-500/50 text-red-400 hover:bg-red-500/20 text-sm"
-                data-testid="button-admin-login"
-              >
-                Login as Admin
-              </Button>
-            </div>
             
             <Card className="bg-gray-800/95 backdrop-blur-lg border-gray-600/50 shadow-2xl">
               <CardHeader className="text-center space-y-3">

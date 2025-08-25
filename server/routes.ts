@@ -5,13 +5,15 @@ import { setupAuth, isAuthenticated, isAdmin } from "./auth";
 import { createTransactionSchema, createWithdrawalSchema, PAYMENT_ADDRESSES } from "@shared/schema";
 import { z } from "zod";
 import axios from 'axios';
+import bcrypt from 'bcryptjs';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   setupAuth(app);
 
-  // Initialize mining plans and start services
+  // Initialize mining plans, admin user, and start services
   await initializeMiningPlans();
+  await initializeAdminUser();
   startPriceUpdateService();
 
   // Crypto prices endpoint
@@ -354,6 +356,30 @@ async function initializeMiningPlans() {
     }
   } catch (error) {
     console.error("Error initializing mining plans:", error);
+  }
+}
+
+async function initializeAdminUser() {
+  try {
+    const adminEmail = "anjoriniyanuoluwa08@gmail.com";
+    const existingAdmin = await storage.getUserByEmail(adminEmail);
+    
+    if (!existingAdmin) {
+      const hashedPassword = await bcrypt.hash("@Damilola30", 12);
+      
+      await storage.createUser({
+        email: adminEmail,
+        password: hashedPassword,
+        firstName: "Administrator",
+        lastName: "CryptoMine",
+        isEmailVerified: true,
+        isAdmin: true,
+      });
+      
+      console.log("✓ Admin user initialized successfully");
+    }
+  } catch (error) {
+    console.error("Error initializing admin user:", error);
   }
 }
 
