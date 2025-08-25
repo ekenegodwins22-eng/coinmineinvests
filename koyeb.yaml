@@ -1,0 +1,53 @@
+# Koyeb configuration for backend service
+services:
+  - name: mining-dashboard-backend
+    git:
+      repository: github.com/yourusername/your-repository
+      branch: main
+      directory: backend
+    env:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        secret: database-url
+      - key: SESSION_SECRET
+        secret: session-secret
+      - key: FRONTEND_URL
+        value: https://your-frontend-domain.com
+    build:
+      buildCommand: npm run build
+      runCommand: npm start
+    instance:
+      type: free
+    ports:
+      - port: 5000
+        protocol: http
+    health_check:
+      http:
+        path: /health
+        port: 5000
+    regions:
+      - was # Washington (US East)
+
+  - name: mining-dashboard-frontend
+    git:
+      repository: github.com/yourusername/your-repository
+      branch: main
+      directory: frontend
+    env:
+      - key: VITE_API_URL
+        value: https://mining-dashboard-backend-your-app-id.koyeb.app
+      - key: VITE_APP_NAME
+        value: Mining Dashboard
+      - key: VITE_ENV
+        value: production
+    build:
+      buildCommand: npm run build
+      staticFiles: dist
+    instance:
+      type: free
+    ports:
+      - port: 3000
+        protocol: http
+    regions:
+      - was # Washington (US East)
