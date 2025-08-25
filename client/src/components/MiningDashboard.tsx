@@ -91,8 +91,18 @@ export default function MiningDashboard() {
     queryKey: ["/api/withdrawals"],
   });
 
+  // Fetch real-time crypto prices for live USD conversion
+  const { data: cryptoPrices = [] } = useQuery({
+    queryKey: ["/api/crypto-prices"],
+    refetchInterval: 60000, // Refresh every minute to match server updates
+  });
+
   const earnings = earningsData?.earnings || [];
   const totals = earningsData?.totals || { totalBtc: 0, totalUsd: 0 };
+
+  // Get current BTC price for real-time USD conversion
+  const btcPrice = cryptoPrices.find((crypto: any) => crypto.symbol === 'BTC')?.price || 0;
+  const realTimeUsdValue = totals.totalBtc * Number(btcPrice);
 
   // Calculate today's and yesterday's earnings
   const today = new Date().toDateString();
@@ -249,17 +259,20 @@ export default function MiningDashboard() {
             <motion.div 
               className="text-sm text-cmc-gray" 
               data-testid="text-total-usd"
-              key={totals.totalUsd}
+              key={realTimeUsdValue}
               initial={{ opacity: 0.7 }}
               animate={{ opacity: [0.7, 1, 0.7] }}
               transition={{ duration: 1 }}
             >
               ≈ <RealTimeBalanceTicker
-                currentBalance={totals.totalUsd}
+                currentBalance={realTimeUsdValue}
                 currency="$"
                 isActive={activeContracts.length > 0}
                 className="text-cmc-gray inline-block"
               />
+              <span className="text-xs ml-1 opacity-75">
+                (@ ${Number(btcPrice).toLocaleString()}/BTC)
+              </span>
             </motion.div>
             <div className="mt-4 space-y-3">
               <div className="bg-cmc-dark rounded-lg p-3 relative overflow-hidden">
