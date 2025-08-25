@@ -15,7 +15,7 @@ import { ArrowLeft, Check, X, Clock, DollarSign } from "lucide-react";
 import { useState } from "react";
 
 interface Transaction {
-  id: string;
+  _id: string;
   userId: string;
   planId: string;
   amount: string;
@@ -209,9 +209,9 @@ export default function Admin() {
                   </TableHeader>
                   <TableBody>
                     {transactions.map((transaction: Transaction) => (
-                      <TableRow key={transaction.id} className="border-gray-700" data-testid={`row-transaction-${transaction.id}`}>
+                      <TableRow key={transaction._id} className="border-gray-700" data-testid={`row-transaction-${transaction._id}`}>
                         <TableCell className="font-mono text-sm">
-                          {transaction.id.slice(0, 8)}...
+                          {transaction._id.slice(0, 8)}...
                         </TableCell>
                         <TableCell className="font-semibold text-cmc-green">
                           ${transaction.amount}
@@ -238,10 +238,10 @@ export default function Admin() {
                           <div className="flex space-x-2">
                             <Button
                               size="sm"
-                              onClick={() => handleApprove(transaction.id)}
+                              onClick={() => handleApprove(transaction._id)}
                               disabled={approveMutation.isPending}
                               className="bg-cmc-green hover:bg-green-600"
-                              data-testid={`button-approve-${transaction.id}`}
+                              data-testid={`button-approve-${transaction._id}`}
                             >
                               <Check className="w-4 h-4 mr-1" />
                               Approve
@@ -251,9 +251,9 @@ export default function Admin() {
                                 <Button
                                   size="sm"
                                   variant="destructive"
-                                  onClick={() => setSelectedTransaction(transaction.id)}
+                                  onClick={() => setSelectedTransaction(transaction._id)}
                                   disabled={rejectMutation.isPending}
-                                  data-testid={`button-reject-${transaction.id}`}
+                                  data-testid={`button-reject-${transaction._id}`}
                                 >
                                   <X className="w-4 h-4 mr-1" />
                                   Reject
