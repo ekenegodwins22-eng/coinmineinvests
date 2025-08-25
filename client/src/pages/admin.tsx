@@ -287,9 +287,9 @@ export default function Admin() {
                   </TableHeader>
                   <TableBody>
                     {transactions.map((transaction: Transaction) => (
-                      <TableRow key={transaction._id} className="border-gray-700" data-testid={`row-transaction-${transaction._id}`}>
+                      <TableRow key={transaction._id || 'unknown'} className="border-gray-700" data-testid={`row-transaction-${transaction._id || 'unknown'}`}>
                         <TableCell className="font-mono text-sm">
-                          {transaction._id.slice(0, 8)}...
+                          {transaction._id ? transaction._id.slice(0, 8) + '...' : 'N/A'}
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col">
@@ -323,9 +323,9 @@ export default function Admin() {
                             <Button
                               size="sm"
                               onClick={() => handleApprove(transaction._id)}
-                              disabled={approveMutation.isPending}
+                              disabled={approveMutation.isPending || !transaction._id}
                               className="bg-cmc-green hover:bg-green-600"
-                              data-testid={`button-approve-${transaction._id}`}
+                              data-testid={`button-approve-${transaction._id || 'unknown'}`}
                             >
                               <Check className="w-4 h-4 mr-1" />
                               Approve
@@ -337,7 +337,7 @@ export default function Admin() {
                                   variant="destructive"
                                   onClick={() => setSelectedTransaction(transaction._id)}
                                   disabled={rejectMutation.isPending}
-                                  data-testid={`button-reject-${transaction._id}`}
+                                  data-testid={`button-reject-${transaction._id || 'unknown'}`}
                                 >
                                   <X className="w-4 h-4 mr-1" />
                                   Reject

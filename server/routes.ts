@@ -202,8 +202,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const enhancedTransactions = await Promise.all(
         transactions.map(async (tx) => {
           const user = await storage.getUser(tx.userId);
+          // Convert Mongoose document to plain object to avoid metadata issues
+          const plainTx = tx.toObject ? tx.toObject() : tx;
           return {
-            ...tx,
+            ...plainTx,
             userEmail: user?.email || 'Unknown',
             userName: user ? `${user.firstName} ${user.lastName}` : 'Unknown'
           };
