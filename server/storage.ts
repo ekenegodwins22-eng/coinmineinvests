@@ -25,6 +25,7 @@ export interface IStorage {
   getUserByGoogleId(googleId: string): Promise<IUser | null>;
   createUser(user: Partial<IUser>): Promise<IUser>;
   updateUser(id: string, updates: Partial<IUser>): Promise<IUser | null>;
+  getTotalUsers(): Promise<number>;
   
   // Mining plans
   getMiningPlans(): Promise<IMiningPlan[]>;
@@ -54,6 +55,7 @@ export interface IStorage {
   createWithdrawal(withdrawal: CreateWithdrawalData & { userId: string }): Promise<IWithdrawal>;
   getUserWithdrawals(userId: string): Promise<IWithdrawal[]>;
   getPendingWithdrawals(): Promise<IWithdrawal[]>;
+  getAllWithdrawals(): Promise<IWithdrawal[]>;
   updateWithdrawal(id: string, updates: Partial<IWithdrawal>): Promise<IWithdrawal | null>;
   
   // Crypto prices
@@ -92,6 +94,11 @@ export class MongoStorage implements IStorage {
   async updateUser(id: string, updates: Partial<IUser>): Promise<IUser | null> {
     await connectDB();
     return await User.findByIdAndUpdate(id, updates, { new: true });
+  }
+
+  async getTotalUsers(): Promise<number> {
+    await connectDB();
+    return await User.countDocuments();
   }
 
   // Mining plans
@@ -230,6 +237,11 @@ export class MongoStorage implements IStorage {
   async getPendingWithdrawals(): Promise<IWithdrawal[]> {
     await connectDB();
     return await Withdrawal.find({ status: 'pending' }).sort({ createdAt: -1 });
+  }
+
+  async getAllWithdrawals(): Promise<IWithdrawal[]> {
+    await connectDB();
+    return await Withdrawal.find().sort({ createdAt: -1 });
   }
 
   async updateWithdrawal(id: string, updates: Partial<IWithdrawal>): Promise<IWithdrawal | null> {

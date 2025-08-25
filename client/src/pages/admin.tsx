@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Link } from "wouter";
-import { ArrowLeft, Check, X, Clock, DollarSign } from "lucide-react";
+import { ArrowLeft, Check, X, Clock, DollarSign, Users, TrendingUp, TrendingDown } from "lucide-react";
 import { useState } from "react";
 
 interface Transaction {
@@ -24,6 +24,28 @@ interface Transaction {
   transactionHash?: string;
   status: string;
   createdAt: string;
+  userEmail?: string;
+  userName?: string;
+}
+
+interface AdminStats {
+  totalDeposits: number;
+  totalWithdrawals: number;
+  totalUsers: number;
+  pendingTransactions: number;
+  pendingWithdrawals: number;
+  netProfit: number;
+}
+
+interface Withdrawal {
+  _id: string;
+  userId: string;
+  amount: number;
+  btcAddress: string;
+  status: string;
+  createdAt: string;
+  userEmail?: string;
+  userName?: string;
 }
 
 export default function Admin() {
@@ -49,6 +71,16 @@ export default function Admin() {
 
   const { data: transactions = [], isLoading: transactionsLoading } = useQuery({
     queryKey: ["/api/admin/transactions"],
+    enabled: !!user?.isAdmin,
+  });
+
+  const { data: adminStats, isLoading: statsLoading } = useQuery<AdminStats>({
+    queryKey: ["/api/admin/stats"],
+    enabled: !!user?.isAdmin,
+  });
+
+  const { data: withdrawals = [], isLoading: withdrawalsLoading } = useQuery({
+    queryKey: ["/api/admin/withdrawals"],
     enabled: !!user?.isAdmin,
   });
 
@@ -139,42 +171,86 @@ export default function Admin() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Cards */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
+        {/* Enhanced Stats Cards */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card className="bg-cmc-card border-gray-700" data-testid="card-total-users">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-cmc-gray">Total Users</CardTitle>
+              <Users className="h-4 w-4 text-cmc-blue" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-cmc-blue">
+                {statsLoading ? "..." : adminStats?.totalUsers || 0}
+              </div>
+              <p className="text-xs text-cmc-gray">Registered users</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-cmc-card border-gray-700" data-testid="card-total-deposits">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-cmc-gray">Total Deposits</CardTitle>
+              <TrendingUp className="h-4 w-4 text-cmc-green" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-cmc-green">
+                ${statsLoading ? "..." : adminStats?.totalDeposits.toFixed(2) || "0.00"}
+              </div>
+              <p className="text-xs text-cmc-gray">All approved deposits</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-cmc-card border-gray-700" data-testid="card-total-withdrawals">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-cmc-gray">Total Withdrawals</CardTitle>
+              <TrendingDown className="h-4 w-4 text-orange-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-orange-500">
+                ${statsLoading ? "..." : adminStats?.totalWithdrawals.toFixed(2) || "0.00"}
+              </div>
+              <p className="text-xs text-cmc-gray">All completed withdrawals</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-cmc-card border-gray-700" data-testid="card-net-profit">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-cmc-gray">Net Profit</CardTitle>
+              <DollarSign className="h-4 w-4 text-purple-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-purple-500">
+                ${statsLoading ? "..." : adminStats?.netProfit.toFixed(2) || "0.00"}
+              </div>
+              <p className="text-xs text-cmc-gray">Platform profit</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Pending Actions */}
+        <div className="grid md:grid-cols-2 gap-6 mb-8">
           <Card className="bg-cmc-card border-gray-700" data-testid="card-pending-transactions">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-cmc-gray">Pending Transactions</CardTitle>
               <Clock className="h-4 w-4 text-yellow-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-white">{transactions.length}</div>
+              <div className="text-2xl font-bold text-yellow-500">
+                {statsLoading ? "..." : adminStats?.pendingTransactions || 0}
+              </div>
               <p className="text-xs text-cmc-gray">Awaiting approval</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-cmc-card border-gray-700" data-testid="card-total-value">
+          <Card className="bg-cmc-card border-gray-700" data-testid="card-pending-withdrawals">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-cmc-gray">Total Value</CardTitle>
-              <DollarSign className="h-4 w-4 text-cmc-green" />
+              <CardTitle className="text-sm font-medium text-cmc-gray">Pending Withdrawals</CardTitle>
+              <Clock className="h-4 w-4 text-red-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-cmc-green">
-                ${transactions.reduce((sum, tx) => sum + parseFloat(tx.amount), 0).toFixed(2)}
+              <div className="text-2xl font-bold text-red-500">
+                {statsLoading ? "..." : adminStats?.pendingWithdrawals || 0}
               </div>
-              <p className="text-xs text-cmc-gray">Pending transactions</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-cmc-card border-gray-700" data-testid="card-processing">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-cmc-gray">Processing</CardTitle>
-              <Clock className="h-4 w-4 text-cmc-blue" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-cmc-blue">
-                {approveMutation.isPending || rejectMutation.isPending ? "1" : "0"}
-              </div>
-              <p className="text-xs text-cmc-gray">Currently processing</p>
+              <p className="text-xs text-cmc-gray">Awaiting processing</p>
             </CardContent>
           </Card>
         </div>
@@ -199,6 +275,7 @@ export default function Admin() {
                   <TableHeader>
                     <TableRow className="border-gray-700">
                       <TableHead className="text-cmc-gray">Transaction ID</TableHead>
+                      <TableHead className="text-cmc-gray">User</TableHead>
                       <TableHead className="text-cmc-gray">Amount</TableHead>
                       <TableHead className="text-cmc-gray">Currency</TableHead>
                       <TableHead className="text-cmc-gray">Crypto Amount</TableHead>
@@ -212,6 +289,12 @@ export default function Admin() {
                       <TableRow key={transaction._id} className="border-gray-700" data-testid={`row-transaction-${transaction._id}`}>
                         <TableCell className="font-mono text-sm">
                           {transaction._id.slice(0, 8)}...
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="text-white font-medium">{transaction.userName || 'Unknown'}</span>
+                            <span className="text-xs text-cmc-gray">{transaction.userEmail || 'Unknown'}</span>
+                          </div>
                         </TableCell>
                         <TableCell className="font-semibold text-cmc-green">
                           ${transaction.amount}

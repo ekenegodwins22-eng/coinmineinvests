@@ -155,6 +155,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Admin routes
+  app.get('/api/admin/stats', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!req.user.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const allTransactions = await storage.getAllTransactions();
+      const allWithdrawals = await storage.getAllWithdrawals();
+      
+      const totalDeposits = allTransactions
+        .filter(tx => tx.status === 'approved')
+        .reduce((sum, tx) => sum + parseFloat(tx.amount), 0);
+      
+      const totalWithdrawals = allWithdrawals
+        .filter(w => w.status === 'completed')
+        .reduce((sum, w) => sum + w.amount, 0);
+      
+      const totalUsers = await storage.getTotalUsers();
+      const pendingTransactions = await storage.getPendingTransactions();
+      const pendingWithdrawals = await storage.getPendingWithdrawals();
+
+      res.json({
+        totalDeposits,
+        totalWithdrawals,
+        totalUsers,
+        pendingTransactions: pendingTransactions.length,
+        pendingWithdrawals: pendingWithdrawals.length,
+        netProfit: totalDeposits - totalWithdrawals
+      });
+    } catch (error) {
+      console.error("Error fetching admin stats:", error);
+      res.status(500).json({ message: "Failed to fetch admin stats" });
+    }
+  });
+
   app.get('/api/admin/transactions', isAuthenticated, async (req: any, res) => {
     try {
       if (!req.user.isAdmin) {
@@ -162,7 +197,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const transactions = await storage.getPendingTransactions();
-      res.json(transactions);
+      
+      // Enhance transactions with user details
+      const enhancedTransactions = await Promise.all(
+        transactions.map(async (tx) => {
+          const user = await storage.getUser(tx.userId);
+          return {
+            ...tx,
+            userEmail: user?.email || 'Unknown',
+            userName: user ? `${user.firstName} ${user.lastName}` : 'Unknown'
+          };
+        })
+      );
+      
+      res.json(enhancedTransactions);
     } catch (error) {
       console.error("Error fetching admin transactions:", error);
       res.status(500).json({ message: "Failed to fetch transactions" });
