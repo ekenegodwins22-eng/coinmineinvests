@@ -59,8 +59,8 @@ export default function Home() {
                 <a href="#plans" className="text-cmc-gray hover:text-white transition-colors" data-testid="nav-plans">Plans</a>
                 <a href="#withdrawals" className="text-cmc-gray hover:text-white transition-colors" data-testid="nav-withdrawals">Withdrawals</a>
                 {user?.isAdmin && (
-                  <Link href="/admin" className="text-cmc-gray hover:text-white transition-colors" data-testid="nav-admin">
-                    Admin
+                  <Link href="/admin" className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded-md text-white font-semibold transition-colors" data-testid="nav-admin">
+                    🔒 Admin Dashboard
                   </Link>
                 )}
               </div>
