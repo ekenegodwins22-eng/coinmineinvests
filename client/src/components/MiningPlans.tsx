@@ -3,23 +3,13 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import PaymentModal from "./PaymentModal";
-
-interface MiningPlan {
-  id: string;
-  name: string;
-  price: string;
-  miningRate: string;
-  dailyEarnings: string;
-  monthlyRoi: string;
-  contractPeriod: number;
-  isActive: boolean;
-}
+import { MiningPlan } from "@shared/schema";
 
 export default function MiningPlans() {
   const [selectedPlan, setSelectedPlan] = useState<MiningPlan | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
-  const { data: plans = [], isLoading } = useQuery({
+  const { data: plans = [], isLoading } = useQuery<MiningPlan[]>({
     queryKey: ["/api/mining-plans"],
   });
 
@@ -28,10 +18,8 @@ export default function MiningPlans() {
     setShowPaymentModal(true);
   };
 
-  const formatDailyEarnings = (earnings: string) => {
-    const btcAmount = parseFloat(earnings);
-    const usdAmount = btcAmount * 112570; // Approximate BTC price
-    return `~$${usdAmount.toFixed(2)}`;
+  const formatDailyEarnings = (dailyEarnings: number | string) => {
+    return `${dailyEarnings} BTC`;
   };
 
   if (isLoading) {
@@ -45,7 +33,7 @@ export default function MiningPlans() {
   return (
     <>
       <div className="grid md:grid-cols-3 gap-8" data-testid="container-mining-plans">
-        {plans.map((plan: MiningPlan, index: number) => {
+        {plans.map((plan) => {
           const isPopular = plan.name === "Pro";
           const isEnterprise = plan.name === "Enterprise";
 
@@ -74,7 +62,7 @@ export default function MiningPlans() {
                 <div className={`text-4xl font-bold mb-2 ${
                   isEnterprise ? "text-yellow-500" : "text-cmc-blue"
                 }`} data-testid={`text-plan-price-${plan.name.toLowerCase()}`}>
-                  ${plan.price}
+                  ${plan.price.toString()}
                 </div>
                 <div className="text-cmc-gray">/month</div>
               </div>

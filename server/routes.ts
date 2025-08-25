@@ -1,8 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertTransactionSchema, insertWithdrawalSchema } from "@shared/schema";
+import { setupAuth, isAuthenticated, isAdmin } from "./auth";
+import { insertTransactionSchema, insertWithdrawalSchema, type User } from "@shared/schema";
 import { z } from "zod";
 
 // Crypto wallet addresses for payments
@@ -15,7 +15,7 @@ const CRYPTO_ADDRESSES = {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
-  await setupAuth(app);
+  setupAuth(app);
 
   // Initialize mining plans if they don't exist
   await initializeMiningPlans();
@@ -23,17 +23,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Start price update service
   startPriceUpdateService();
 
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
+  // Note: Auth routes are handled in auth.ts
 
   // Crypto prices
   app.get('/api/crypto-prices', async (req, res) => {
@@ -60,7 +50,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User transactions
   app.get('/api/transactions', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const transactions = await storage.getUserTransactions(userId);
       res.json(transactions);
     } catch (error) {
@@ -72,7 +62,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create transaction
   app.post('/api/transactions', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const transactionData = insertTransactionSchema.parse({
         ...req.body,
         userId,
@@ -94,7 +84,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User mining contracts
   app.get('/api/mining-contracts', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const contracts = await storage.getUserMiningContracts(userId);
       res.json(contracts);
     } catch (error) {
@@ -106,7 +96,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User earnings
   app.get('/api/earnings', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const [earnings, totals] = await Promise.all([
         storage.getUserEarnings(userId),
         storage.getUserTotalEarnings(userId)
@@ -121,7 +111,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Withdrawals
   app.get('/api/withdrawals', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const withdrawals = await storage.getUserWithdrawals(userId);
       res.json(withdrawals);
     } catch (error) {
@@ -132,7 +122,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/withdrawals', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const withdrawalData = insertWithdrawalSchema.parse({
         ...req.body,
         userId
