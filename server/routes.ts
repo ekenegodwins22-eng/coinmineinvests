@@ -755,29 +755,28 @@ async function fetchCryptoPrices() {
   }
 }
 
-// Generate daily earnings for active contracts
+// Generate per-second earnings for active contracts  
 async function generateDailyEarnings(userId: string, plan: any, contractId: number) {
   try {
     const btcPrice = await storage.getCryptoPrice('BTC');
-    const btcPriceUsd = Number(btcPrice?.price) || 45000;
-    const dailyEarningsAmount = Number(plan.dailyEarnings);
+    const btcPriceUsd = Number(btcPrice?.price) || 111325;
+    const perSecondEarningsAmount = Number(plan.dailyEarnings); // Now contains per-second amounts
     
     await storage.createMiningEarning({
       contractId,
       userId: Number(userId),
       date: new Date(),
-      amount: plan.dailyEarnings,
-      usdValue: (dailyEarningsAmount * btcPriceUsd).toString(),
+      amount: plan.dailyEarnings, // Per-second BTC amount
+      usdValue: (perSecondEarningsAmount * btcPriceUsd).toString(),
     });
   } catch (error) {
-    console.error("Error generating daily earnings:", error);
+    console.error("Error generating per-second earnings:", error);
   }
 }
 
-// Generate earnings for all active contracts
+// Generate earnings for all active contracts (per second)
 async function generateEarningsForAllContracts() {
   try {
-    console.log("🔄 Generating daily earnings for all active contracts...");
     const activeContracts = await storage.getActiveMiningContracts();
     
     for (const contract of activeContracts) {
@@ -787,29 +786,26 @@ async function generateEarningsForAllContracts() {
       }
     }
     
-    console.log(`✓ Generated earnings for ${activeContracts.length} active contracts`);
+    // Log every 10 seconds to avoid spam
+    if (Date.now() % 10000 < 1000) {
+      console.log(`⛏️ Real-time mining active: ${activeContracts.length} contracts earning per second`);
+    }
   } catch (error) {
-    console.error("Error in daily earnings generation:", error);
+    console.error("Error in real-time earnings generation:", error);
   }
 }
 
-// 24-hour earnings generation service
+// Real-time earnings generation service (every second)
 function startDailyEarningsService() {
-  console.log("✓ Daily earnings service started");
+  console.log("✓ Real-time earnings service started - generating every second");
   
-  // Generate earnings immediately for testing
+  // Generate earnings immediately
   generateEarningsForAllContracts();
   
-  // Generate earnings every 24 hours (86400000 milliseconds)
+  // Generate earnings every second (1000 milliseconds) for live balance updates
   setInterval(() => {
     generateEarningsForAllContracts();
-  }, 24 * 60 * 60 * 1000);
-  
-  // For demo purposes, also generate every 5 minutes to see results faster
-  // Remove this in production
-  setInterval(() => {
-    generateEarningsForAllContracts();
-  }, 5 * 60 * 1000);
+  }, 1000);
 }
 
 // Start the price update service

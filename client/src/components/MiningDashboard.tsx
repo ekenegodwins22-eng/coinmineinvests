@@ -70,6 +70,7 @@ interface EarningsData {
 export default function MiningDashboard() {
   const { data: earningsData, isLoading: earningsLoading } = useQuery<EarningsData>({
     queryKey: ["/api/earnings"],
+    refetchInterval: 1000, // Refresh every second for real-time updates
   });
 
   const { data: contracts = [], isLoading: contractsLoading } = useQuery<MiningContract[]>({
