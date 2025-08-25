@@ -362,7 +362,7 @@ async function initializeMiningPlans() {
 async function initializeAdminUser() {
   try {
     console.log("Starting admin user initialization...");
-    const adminEmail = "anjoriniyanuoluwa08@gmail.com";
+    const adminEmail = "fredokcee1@gmail.com";
     const adminPassword = "@Damilola30";
     const existingAdmin = await storage.getUserByEmail(adminEmail);
     
