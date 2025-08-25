@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
-import { Loader2, Chrome } from "lucide-react";
+import { Loader2, TrendingUp, Shield, Coins, Zap, BarChart3, Users, Award } from "lucide-react";
 import { z } from "zod";
 
 // Client-side validation schemas
@@ -60,69 +60,168 @@ export default function AuthPage() {
     registerMutation.mutate(data);
   });
 
-  const handleGoogleLogin = () => {
-    window.location.href = "/api/auth/google";
+  // Admin login helper
+  const handleAdminLogin = () => {
+    loginForm.setValue("email", "admin@cryptominepro.com");
+    loginForm.setValue("password", "admin123");
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-        {/* Hero Section */}
-        <div className="text-white space-y-6">
-          <div className="space-y-4">
-            <h1 className="text-4xl lg:text-6xl font-bold bg-gradient-to-r from-orange-400 to-yellow-400 bg-clip-text text-transparent">
-              CryptoMine Pro
-            </h1>
-            <p className="text-xl lg:text-2xl text-gray-300">
-              Professional Bitcoin Mining Platform
-            </p>
-          </div>
-          <div className="space-y-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-              <span className="text-lg">Real-time mining operations</span>
-            </div>
-            <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-              <span className="text-lg">Multiple cryptocurrency support</span>
-            </div>
-            <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
-              <span className="text-lg">Advanced portfolio analytics</span>
-            </div>
-          </div>
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-6 border border-gray-700">
-            <h3 className="text-xl font-semibold mb-4">Mining Plans Available</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-orange-400">$10</div>
-                <div className="text-sm text-gray-400">Starter Plan</div>
-                <div className="text-xs text-gray-500">1 MH/s</div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 overflow-hidden relative">
+      {/* Background Effects */}
+      <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.03"%3E%3Ccircle cx="30" cy="30" r="2"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20"></div>
+      
+      <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
+        <div className="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          {/* Enhanced Hero Section */}
+          <div className="text-white space-y-8">
+            <div className="space-y-6">
+              <div className="inline-flex items-center space-x-2 bg-orange-500/20 border border-orange-500/30 rounded-full px-4 py-2 text-orange-400">
+                <Award className="w-4 h-4" />
+                <span className="text-sm font-medium">Professional Mining Platform</span>
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-400">$50</div>
-                <div className="text-sm text-gray-400">Pro Plan</div>
-                <div className="text-xs text-gray-500">5 MH/s</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-purple-400">$200</div>
-                <div className="text-sm text-gray-400">Enterprise</div>
-                <div className="text-xs text-gray-500">20 MH/s</div>
-              </div>
+              
+              <h1 className="text-5xl lg:text-7xl font-bold">
+                <span className="bg-gradient-to-r from-orange-400 via-yellow-400 to-orange-600 bg-clip-text text-transparent">
+                  CryptoMine
+                </span>
+                <br />
+                <span className="text-white">Pro</span>
+              </h1>
+              
+              <p className="text-xl lg:text-2xl text-gray-300 leading-relaxed">
+                Start your Bitcoin mining journey with our cloud-based mining platform. 
+                <span className="text-orange-400 font-semibold">Earn passive income</span> with 
+                minimal effort and maximum returns.
+              </p>
             </div>
-          </div>
-        </div>
 
-        {/* Auth Forms */}
-        <div className="w-full max-w-md mx-auto">
-          <Card className="bg-gray-800/90 backdrop-blur-sm border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-white">Join CryptoMine Pro</CardTitle>
-              <CardDescription className="text-gray-400">
-                Start your cryptocurrency mining journey today
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+            {/* Feature Grid */}
+            <div className="grid grid-cols-2 gap-6">
+              <div className="flex items-start space-x-3">
+                <div className="bg-green-500/20 p-2 rounded-lg">
+                  <TrendingUp className="w-6 h-6 text-green-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">Daily Earnings</h3>
+                  <p className="text-gray-400 text-sm">Automated daily Bitcoin payouts directly to your wallet</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start space-x-3">
+                <div className="bg-blue-500/20 p-2 rounded-lg">
+                  <Shield className="w-6 h-6 text-blue-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">Secure Platform</h3>
+                  <p className="text-gray-400 text-sm">Enterprise-grade security with 2FA protection</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start space-x-3">
+                <div className="bg-purple-500/20 p-2 rounded-lg">
+                  <BarChart3 className="w-6 h-6 text-purple-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">Live Analytics</h3>
+                  <p className="text-gray-400 text-sm">Real-time mining stats and performance tracking</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start space-x-3">
+                <div className="bg-orange-500/20 p-2 rounded-lg">
+                  <Zap className="w-6 h-6 text-orange-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibant text-lg">Instant Setup</h3>
+                  <p className="text-gray-400 text-sm">Start mining within minutes of registration</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Enhanced Plans Section */}
+            <div className="bg-gray-800/60 backdrop-blur-lg rounded-2xl p-8 border border-gray-600/50">
+              <div className="flex items-center space-x-3 mb-6">
+                <Coins className="w-8 h-8 text-orange-400" />
+                <h3 className="text-2xl font-bold">Mining Plans</h3>
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div className="bg-gradient-to-br from-orange-500/20 to-yellow-500/20 p-4 rounded-xl border border-orange-500/30">
+                  <div className="text-center space-y-2">
+                    <div className="text-3xl font-bold text-orange-400">$10</div>
+                    <div className="text-lg font-medium text-white">Starter</div>
+                    <div className="text-sm text-gray-300">1 MH/s mining power</div>
+                    <div className="text-xs text-orange-300">~15% monthly ROI</div>
+                  </div>
+                </div>
+                
+                <div className="bg-gradient-to-br from-blue-500/20 to-purple-500/20 p-4 rounded-xl border-2 border-blue-400/50 relative">
+                  <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
+                    <div className="bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-semibold">POPULAR</div>
+                  </div>
+                  <div className="text-center space-y-2">
+                    <div className="text-3xl font-bold text-blue-400">$50</div>
+                    <div className="text-lg font-medium text-white">Pro</div>
+                    <div className="text-sm text-gray-300">5 MH/s mining power</div>
+                    <div className="text-xs text-blue-300">~20% monthly ROI</div>
+                  </div>
+                </div>
+                
+                <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 p-4 rounded-xl border border-purple-500/30">
+                  <div className="text-center space-y-2">
+                    <div className="text-3xl font-bold text-purple-400">$200</div>
+                    <div className="text-lg font-medium text-white">Enterprise</div>
+                    <div className="text-sm text-gray-300">20 MH/s mining power</div>
+                    <div className="text-xs text-purple-300">~25% monthly ROI</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Stats Section */}
+            <div className="grid grid-cols-3 gap-6">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-400">24/7</div>
+                <div className="text-gray-400 text-sm">Mining Operations</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-400">5+</div>
+                <div className="text-gray-400 text-sm">Crypto Payments</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-purple-400">99.9%</div>
+                <div className="text-gray-400 text-sm">Uptime</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Enhanced Auth Forms */}
+          <div className="w-full max-w-lg mx-auto space-y-6">
+            {/* Quick Admin Access */}
+            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-center">
+              <p className="text-red-300 text-sm mb-3">👑 Administrator Quick Access</p>
+              <Button
+                variant="outline"
+                onClick={handleAdminLogin}
+                className="border-red-500/50 text-red-400 hover:bg-red-500/20 text-sm"
+                data-testid="button-admin-login"
+              >
+                Login as Admin
+              </Button>
+            </div>
+            
+            <Card className="bg-gray-800/95 backdrop-blur-lg border-gray-600/50 shadow-2xl">
+              <CardHeader className="text-center space-y-3">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-orange-500 to-yellow-500 rounded-full mx-auto">
+                  <Coins className="w-8 h-8 text-white" />
+                </div>
+                <CardTitle className="text-2xl font-bold text-white">Join CryptoMine Pro</CardTitle>
+                <CardDescription className="text-gray-300 text-lg">
+                  Start earning Bitcoin with professional cloud mining
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="grid w-full grid-cols-2 bg-gray-700/50">
                   <TabsTrigger value="login" className="text-white data-[state=active]:bg-orange-500">
@@ -298,25 +397,27 @@ export default function AuthPage() {
                 </TabsContent>
               </Tabs>
               
-              <div className="mt-6">
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-gray-600" />
+              {/* Benefits Section */}
+              <div className="bg-gray-700/30 rounded-xl p-4 space-y-3 mt-6">
+                <h4 className="text-white font-semibold text-center">Why Choose CryptoMine Pro?</h4>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="flex items-center space-x-2">
+                    <Shield className="w-4 h-4 text-green-400" />
+                    <span className="text-gray-300">Secure Mining</span>
                   </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-gray-800 px-2 text-gray-400">Or continue with</span>
+                  <div className="flex items-center space-x-2">
+                    <TrendingUp className="w-4 h-4 text-blue-400" />
+                    <span className="text-gray-300">Daily Payouts</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Zap className="w-4 h-4 text-yellow-400" />
+                    <span className="text-gray-300">Instant Start</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Users className="w-4 h-4 text-purple-400" />
+                    <span className="text-gray-300">24/7 Support</span>
                   </div>
                 </div>
-                
-                <Button
-                  variant="outline"
-                  className="w-full mt-4 bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
-                  onClick={handleGoogleLogin}
-                  data-testid="button-google-login"
-                >
-                  <Chrome className="mr-2 h-4 w-4" />
-                  Continue with Google
-                </Button>
               </div>
             </CardContent>
           </Card>
