@@ -336,7 +336,15 @@ export default function Admin() {
           <AdminSupportTickets />
         </div>
 
-        {/* Transactions */}
+        <Tabs defaultValue="transactions" className="space-y-6">
+          <TabsList className="bg-cmc-card border-gray-700">
+            <TabsTrigger value="transactions" className="data-[state=active]:bg-cmc-blue">Transactions</TabsTrigger>
+            <TabsTrigger value="withdrawals" className="data-[state=active]:bg-cmc-blue">Withdrawals</TabsTrigger>
+            <TabsTrigger value="announcements" className="data-[state=active]:bg-cmc-blue">Announcements</TabsTrigger>
+            <TabsTrigger value="support" className="data-[state=active]:bg-cmc-blue">Support</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="transactions">
             <Card className="bg-cmc-card border-gray-700" data-testid="card-transactions">
               <CardHeader>
                 <CardTitle className="text-xl font-bold text-white">Pending Transactions</CardTitle>
@@ -666,8 +674,6 @@ export default function Admin() {
             </div>
           </DialogContent>
         </Dialog>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           <TabsContent value="support">
