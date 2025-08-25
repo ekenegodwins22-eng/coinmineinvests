@@ -125,7 +125,6 @@ export default function PaymentModal({ plan, isOpen, onClose }: PaymentModalProp
 
     createTransactionMutation.mutate({
       planId: plan._id || plan.id,
-      amount: plan.price,
       currency: selectedCrypto.symbol,
       cryptoAmount: parseFloat(cryptoAmount),
       walletAddress: selectedCrypto.address,
