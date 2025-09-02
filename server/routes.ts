@@ -17,6 +17,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   startPriceUpdateService();
   startDailyEarningsService();
 
+  // Health check endpoint
+  app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+
   // Crypto prices endpoint
   app.get('/api/crypto-prices', async (req, res) => {
     try {
@@ -649,6 +654,63 @@ async function initializeMiningPlans() {
             "22% monthly ROI",
             "VIP support",
             "Custom analytics"
+          ],
+          isActive: true,
+        },
+        {
+          name: "Advanced Plan",
+          price: "100",
+          miningRate: "10.0",
+          dailyEarnings: "0.00003500",
+          monthlyRoi: "20.0",
+          contractPeriod: 1,
+          description: "Advanced mining solution with enhanced performance",
+          features: [
+            "10 MH/s mining power",
+            "Enhanced daily earnings",
+            "1-month contract",
+            "20% monthly ROI",
+            "Advanced support",
+            "Performance analytics"
+          ],
+          isActive: true,
+        },
+        {
+          name: "Premium Plan",
+          price: "500",
+          miningRate: "50.0",
+          dailyEarnings: "0.00018500",
+          monthlyRoi: "25.0",
+          contractPeriod: 1,
+          description: "Premium mining package for high-volume investors",
+          features: [
+            "50 MH/s mining power",
+            "Premium daily earnings",
+            "1-month contract",
+            "25% monthly ROI",
+            "Premium support",
+            "Dedicated account manager",
+            "Real-time monitoring"
+          ],
+          isActive: true,
+        },
+        {
+          name: "Ultimate Plan",
+          price: "1000",
+          miningRate: "100.0",
+          dailyEarnings: "0.00045000",
+          monthlyRoi: "30.0",
+          contractPeriod: 1,
+          description: "Ultimate mining power for institutional investors",
+          features: [
+            "100 MH/s mining power",
+            "Ultimate daily earnings",
+            "1-month contract",
+            "30% monthly ROI",
+            "White-glove support",
+            "Dedicated infrastructure",
+            "Custom reporting",
+            "API access"
           ],
           isActive: true,
         },
