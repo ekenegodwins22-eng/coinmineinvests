@@ -163,9 +163,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const totals = await storage.getUserTotalEarnings(userId);
       const totalBtc = totals.totalBtc;
       const requestedAmount = withdrawalData.amount;
+      const requestedCurrency = withdrawalData.currency;
 
-      if (requestedAmount > totalBtc) {
-        return res.status(400).json({ message: "Insufficient balance" });
+      // Handle currency conversion for balance validation
+      if (requestedCurrency === "BTC") {
+        if (requestedAmount > totalBtc) {
+          return res.status(400).json({ message: "Insufficient balance" });
+        }
+      } else {
+        // For other currencies, calculate equivalent BTC amount needed
+        const btcPrice = await storage.getCryptoPrice('BTC');
+        const requestedCurrencyPrice = await storage.getCryptoPrice(requestedCurrency);
+        
+        if (!btcPrice || !requestedCurrencyPrice) {
+          return res.status(400).json({ message: "Currency price not available" });
+        }
+
+        const btcPriceUsd = Number(btcPrice.price);
+        const currencyPriceUsd = Number(requestedCurrencyPrice.price);
+        
+        // Calculate equivalent BTC amount needed for the requested withdrawal
+        const usdValue = requestedAmount * currencyPriceUsd;
+        const equivalentBtc = usdValue / btcPriceUsd;
+
+        if (equivalentBtc > totalBtc) {
+          return res.status(400).json({ 
+            message: "Insufficient balance", 
+            details: `Requested ${requestedAmount} ${requestedCurrency} requires ${equivalentBtc.toFixed(8)} BTC, but you have ${totalBtc} BTC` 
+          });
+        }
       }
 
       const withdrawal = await storage.createWithdrawal({
@@ -817,32 +843,29 @@ async function fetchCryptoPrices() {
   }
 }
 
-// Generate per-second earnings for active contracts  
-async function generateDailyEarnings(userId: string, plan: any, contractId: number) {
+// Generate hourly earnings for active contracts  
+async function generateHourlyEarnings(userId: string, plan: any, contractId: number) {
   try {
     const btcPrice = await storage.getCryptoPrice('BTC');
     const btcPriceUsd = Number(btcPrice?.price) || 111325;
     
-    // Convert daily earnings to per-second earnings using higher precision
+    // Convert daily earnings to hourly earnings (daily / 24 hours)
     const dailyEarningsAmount = Number(plan.dailyEarnings);
-    const perSecondEarningsAmount = dailyEarningsAmount / 86400; // 24 hours * 60 minutes * 60 seconds = 86,400
-    
-    // Use higher precision for very small amounts - multiply by 1000 to make earnings visible
-    const adjustedPerSecondAmount = perSecondEarningsAmount * 1000; // Increase earnings by 1000x for demonstration
+    const hourlyEarningsAmount = dailyEarningsAmount / 24; // 24 hours in a day
     
     await storage.createMiningEarning({
       contractId,
       userId: Number(userId),
       date: new Date(),
-      amount: adjustedPerSecondAmount.toString(), // Higher precision BTC amount
-      usdValue: (adjustedPerSecondAmount * btcPriceUsd).toString(),
+      amount: hourlyEarningsAmount.toString(), // Hourly BTC amount
+      usdValue: (hourlyEarningsAmount * btcPriceUsd).toString(),
     });
   } catch (error) {
-    console.error("Error generating per-second earnings:", error);
+    console.error("Error generating hourly earnings:", error);
   }
 }
 
-// Generate earnings for all active contracts (per second)
+// Generate earnings for all active contracts (hourly)
 async function generateEarningsForAllContracts() {
   try {
     const activeContracts = await storage.getActiveMiningContracts();
@@ -850,30 +873,27 @@ async function generateEarningsForAllContracts() {
     for (const contract of activeContracts) {
       const plan = await storage.getMiningPlan(contract.planId);
       if (plan) {
-        await generateDailyEarnings(contract.userId.toString(), plan, contract.id);
+        await generateHourlyEarnings(contract.userId.toString(), plan, contract.id);
       }
     }
     
-    // Log every 10 seconds to avoid spam
-    if (Date.now() % 10000 < 1000) {
-      console.log(`⛏️ Real-time mining active: ${activeContracts.length} contracts earning per second`);
-    }
+    console.log(`⛏️ Mining earnings generated: ${activeContracts.length} contracts earning hourly`);
   } catch (error) {
-    console.error("Error in real-time earnings generation:", error);
+    console.error("Error in hourly earnings generation:", error);
   }
 }
 
-// Real-time earnings generation service (every second)
+// Hourly earnings generation service
 function startDailyEarningsService() {
-  console.log("✓ Real-time earnings service started - generating every second");
+  console.log("✓ Mining earnings service started - generating every hour");
   
   // Generate earnings immediately
   generateEarningsForAllContracts();
   
-  // Generate earnings every second (1000 milliseconds) for live balance updates
+  // Generate earnings every hour (3,600,000 milliseconds) for realistic mining
   setInterval(() => {
     generateEarningsForAllContracts();
-  }, 1000);
+  }, 60 * 60 * 1000); // 1 hour = 60 minutes × 60 seconds × 1000 ms
 }
 
 // Start the price update service
