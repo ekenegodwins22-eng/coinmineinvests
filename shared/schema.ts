@@ -256,11 +256,11 @@ export const PAYMENT_ADDRESSES = {
 
 // Supported withdrawal currencies
 export const WITHDRAWAL_CURRENCIES = [
-  { symbol: 'BTC', name: 'Bitcoin', icon: '₿' },
-  { symbol: 'ETH', name: 'Ethereum', icon: 'Ξ' },
-  { symbol: 'USDT', name: 'Tether USDT', icon: '₮' },
-  { symbol: 'BNB', name: 'Binance Coin', icon: 'BNB' },
-  { symbol: 'SOL', name: 'Solana', icon: 'SOL' },
-  { symbol: 'ADA', name: 'Cardano', icon: 'ADA' },
-  { symbol: 'DOT', name: 'Polkadot', icon: 'DOT' },
+  { symbol: 'BTC', name: 'Bitcoin', icon: '₿', minAmount: '0.0001' },
+  { symbol: 'ETH', name: 'Ethereum', icon: 'Ξ', minAmount: '0.01' },
+  { symbol: 'USDT', name: 'Tether USDT', icon: '₮', minAmount: '10' },
+  { symbol: 'BNB', name: 'Binance Coin', icon: 'BNB', minAmount: '0.1' },
+  { symbol: 'SOL', name: 'Solana', icon: 'SOL', minAmount: '1' },
+  { symbol: 'ADA', name: 'Cardano', icon: 'ADA', minAmount: '50' },
+  { symbol: 'DOT', name: 'Polkadot', icon: 'DOT', minAmount: '5' },
 ];

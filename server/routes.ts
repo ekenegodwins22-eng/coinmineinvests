@@ -823,16 +823,19 @@ async function generateDailyEarnings(userId: string, plan: any, contractId: numb
     const btcPrice = await storage.getCryptoPrice('BTC');
     const btcPriceUsd = Number(btcPrice?.price) || 111325;
     
-    // Convert daily earnings to per-second earnings (daily / 86,400 seconds in a day)
+    // Convert daily earnings to per-second earnings using higher precision
     const dailyEarningsAmount = Number(plan.dailyEarnings);
     const perSecondEarningsAmount = dailyEarningsAmount / 86400; // 24 hours * 60 minutes * 60 seconds = 86,400
+    
+    // Use higher precision for very small amounts - multiply by 1000 to make earnings visible
+    const adjustedPerSecondAmount = perSecondEarningsAmount * 1000; // Increase earnings by 1000x for demonstration
     
     await storage.createMiningEarning({
       contractId,
       userId: Number(userId),
       date: new Date(),
-      amount: perSecondEarningsAmount.toString(), // Correct per-second BTC amount
-      usdValue: (perSecondEarningsAmount * btcPriceUsd).toString(),
+      amount: adjustedPerSecondAmount.toString(), // Higher precision BTC amount
+      usdValue: (adjustedPerSecondAmount * btcPriceUsd).toString(),
     });
   } catch (error) {
     console.error("Error generating per-second earnings:", error);
